@@ -1,0 +1,7 @@
+{
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "name": "HackerHero",
+  "description": "HackathonHero is your AI co-pilot for hackathons. It eliminates common project hurdles by providing an Idea Generator, a Team Planner, and a 24/48-Hour Roadmap with integrated checklists. It acts as a virtual mentor, guiding teams step-by-step from brainstorming to a successful pitch and finished prototype.\n\nFocus: Build fast, finish strong, and win."
+}
