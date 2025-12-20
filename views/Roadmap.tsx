@@ -1,21 +1,23 @@
+
 import React, { useState } from 'react';
 import { Button, Card, Icons, BackButton } from '../components/ui';
-import { ProjectIdea, RoadmapPhase } from '../types';
+import { ProjectIdea, RoadmapPhase, TeamPlan } from '../types';
 import { generateRoadmap } from '../services/geminiService';
 
 interface RoadmapProps {
   idea: ProjectIdea;
+  teamPlan: TeamPlan;
   onNext: (roadmap: RoadmapPhase[], duration: '24h' | '48h') => void;
   onBack: () => void;
 }
 
-export const Roadmap: React.FC<RoadmapProps> = ({ idea, onNext, onBack }) => {
+export const Roadmap: React.FC<RoadmapProps> = ({ idea, teamPlan, onNext, onBack }) => {
   const [loading, setLoading] = useState(false);
 
   const handleSelect = async (duration: '24h' | '48h') => {
     setLoading(true);
     try {
-      const phases = await generateRoadmap(duration, idea);
+      const phases = await generateRoadmap(duration, idea, teamPlan);
       onNext(phases, duration);
     } catch (e) {
       alert("Consultation failed. Re-initiating roadmap generation.");

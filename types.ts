@@ -1,3 +1,4 @@
+
 export enum AppStep {
   LANDING = 'LANDING',
   IDEA = 'IDEA',
@@ -9,7 +10,8 @@ export enum AppStep {
 export enum DashboardTab {
   TRACKER = 'TRACKER',
   MENTOR = 'MENTOR',
-  CODE = 'CODE'
+  CODE = 'CODE',
+  GUIDE = 'GUIDE'
 }
 
 export interface ProjectIdea {
@@ -38,6 +40,7 @@ export interface RoadmapTask {
   title: string;
   description: string;
   completed: boolean;
+  assignedRoles?: string[];
 }
 
 export interface RoadmapPhase {

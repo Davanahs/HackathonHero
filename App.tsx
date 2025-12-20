@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { AppState, AppStep, ProjectIdea, TeamPlan, RoadmapPhase } from './types';
 import { Landing } from './views/Landing';
@@ -67,6 +68,7 @@ const App: React.FC = () => {
         return (
           <Roadmap 
             idea={state.projectIdea!} 
+            teamPlan={state.teamPlan!}
             onNext={(roadmap, duration) => updateState({ roadmap, hackathonDuration: duration, currentStep: AppStep.DASHBOARD })} 
             onBack={prevStep} 
           />

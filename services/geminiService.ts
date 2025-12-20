@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { ProjectIdea, RoadmapPhase, TeamPlan } from "../types";
 
@@ -89,17 +90,24 @@ export const refineProjectIdea = async (rawInput: string, devPrefs?: string, cus
 export const generateRoadmap = async (
   duration: '24h' | '48h',
   idea: ProjectIdea,
+  teamPlan: TeamPlan,
   customKey?: string | null
 ): Promise<RoadmapPhase[]> => {
   const ai = getAI(customKey);
+  const roleNames = teamPlan.roles.map(r => r.roleName).join(", ");
+  
   const prompt = `Create a PRACTICAL technical roadmap for "${idea.title}".
     ${idea.developerPreferences ? `TECHNICAL STYLE PREFERENCES: ${idea.developerPreferences}` : ""}
+    
+    TEAM ROLES: ${roleNames}
     
     Phases:
     1. Skeleton & Tools (Hours 0-4)
     2. Data & Business Logic (Hours 4-${duration === '24h' ? '12' : '24'})
     3. UI Layout & State (Hours ${duration === '24h' ? '12-20' : '24-40'})
-    4. Finishing & Deployment (Final 4 hours)`;
+    4. Finishing & Deployment (Final 4 hours)
+
+    CRITICAL: For every task, assign it to one or more of the specific roles provided in the TEAM ROLES list.`;
 
   const responseSchema: Schema = {
     type: Type.ARRAY,
@@ -115,8 +123,9 @@ export const generateRoadmap = async (
             properties: {
               title: { type: Type.STRING },
               description: { type: Type.STRING },
+              assignedRoles: { type: Type.ARRAY, items: { type: Type.STRING } }
             },
-            required: ["title", "description"]
+            required: ["title", "description", "assignedRoles"]
           }
         }
       },

@@ -1,35 +1,54 @@
-# HackathonHero
+# HackathonHero 🚀
 
-## 1. Information Architecture & UX
+**HackathonHero** is your professional AI co-pilot for high-stakes hackathons. It eliminates common project hurdles by providing an Idea Studio, Team Planner, and a 24/48-Hour Execution Roadmap with integrated AI mentorship.
 
-**Overall Flow:** Linear "Wizard" style for setup, followed by a Dashboard for execution.
-1.  **Landing Page:** Value proposition -> Call to Action ("Start Your Hackathon").
-2.  **Step 1: Idea Studio:** Two paths: "Suggest an Idea" (based on interests) or "Refine My Idea".
-    *   *Output:* A structured Project Concept (Name, Problem, Solution, Key Features).
-3.  **Step 2: Team Tactics:** User selects "Solo" or "Team".
-    *   *Output:* A Role Responsibility Matrix tailored to the project.
-4.  **Step 3: Roadmap Builder:** Select duration (24h / 48h).
-    *   *Output:* A generated hour-by-hour phase breakdown (Ideation, Dev, Polish, Pitch).
-5.  **Step 4: Hero Dashboard (Main App):**
-    *   *Tab 1: Roadmap Tracker:* Interactive checklist of the generated phases.
-    *   *Tab 2: Mentor (Chat):* Context-aware AI chat for coding help/advice.
-    *   *Tab 3: Pitch Deck:* AI generator for the final presentation script.
+## 🌟 Key Features
+- **Idea Studio:** Brainstorm concepts or refine rough drafts into technical MVP plans.
+- **Team Tactics:** Role responsibility matrix tailored for solo builders or squads.
+- **Execution Roadmap:** Hour-by-hour phase breakdown for 24h/48h timelines.
+- **Mentor AI:** A context-aware senior engineer chat that understands your specific project.
+- **Code Gen:** Generate shippable code snippets for every task in your roadmap.
 
-## 2. UI Copy (Friendly & Beginner-Focused)
+## 🛠️ Tech Stack
+- **Frontend:** React 19, Tailwind CSS
+- **AI Engine:** Google Gemini API (`gemini-3-flash-preview` & `gemini-3-pro-preview`)
 
-*   **Landing:** "Ready to win? Let's turn that spark into a shipping product. I'll guide you from zero to demo in record time."
-*   **Idea Helper:** "Stuck on what to build? Tell me what you love (e.g., 'climate change', 'gaming', 'finance'), or paste your rough idea here. I'll polish it into a winning concept."
-*   **Team Planner:** "Hackathons are intense! Whether you're a lone wolf or a squad, let's define who does what so you don't step on each other's toes."
-*   **Roadmap:** "The clock is ticking. Choose your timeline (24h or 48h). I'll build a survival schedule to ensure you actually finish."
-*   **Mentor Chat:** "I'm your 24/7 senior engineer. Ask me anything—from 'How do I center a div?' to 'How do I pitch this API?'"
-*   **Pitch Assistant:** "Demo time! Don't wing it. Here is a script tailored to your project that hits all the judging criteria."
+---
 
-## 3. Follow-up Prompts for Iteration
+## 🌎 How to Host this App (Make it Live)
 
-1.  "Modify the `RoadmapView` to allow me to drag and drop tasks between phases or mark them as 'Blocked'."
-2.  "Update the `GeminiService` to use `veo-3.1-fast-generate-preview` to generate a 5-second teaser video for the pitch deck screen based on the project description."
-3.  "Add a 'Technology Stack' selector in Step 1, so the AI suggests a roadmap specifically for React/Python/etc."
-4.  "Implement `localStorage` persistence so if I refresh the browser, I don't lose my current hackathon plan."
-5.  "Add a feature to export the Pitch Deck as a PDF or Markdown file."
-6.  "Enhance the Mentor Chat to support image uploads, so I can show the AI a screenshot of my UI bug."
-7.  "Add a 'Panic Button' that gives me a 2-minute breathing exercise and a quick motivational quote when I'm stressed."
+Follow these 3 steps to put your app online for free:
+
+### 1. Sign up for Vercel
+Go to [Vercel.com](https://vercel.com) and sign up with your GitHub account.
+
+### 2. Import Project
+Click **"Add New"** > **"Project"** and select your `Hacksathan_Hreo` repository.
+
+### 3. Set Environment Variables (CRITICAL)
+Before clicking "Deploy", look for the **Environment Variables** section:
+- **Key**: `API_KEY`
+- **Value**: *Paste your Gemini API Key here*
+- Click **Add**.
+
+### 4. Deploy!
+Click **Deploy**. In less than 1 minute, you will have a live URL (e.g., `hackathon-hero.vercel.app`) that you can share with judges or your team!
+
+---
+
+## 🚀 Local Development
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/Davanahs/Hacksathan_Hreo.git
+   ```
+
+2. **Configure Secrets:**
+   - Create a `.env` file in the root directory.
+   - Add your API key: `API_KEY=your_actual_key_here`
+
+3. **Run the app:**
+   Simply open `index.html` in a modern browser using a Live Server extension.
+
+## 🛡️ Security & Privacy
+This project uses `process.env.API_KEY` to ensure secrets are never committed to version control. It also supports **BYOK (Bring Your Own Key)** in the UI, allowing users to use their own usage quotas if the primary key is exhausted.
