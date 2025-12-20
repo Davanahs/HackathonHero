@@ -8,9 +8,8 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     define: {
-      // This ensures 'process.env.API_KEY' works in the browser
-      'process.env.API_KEY': JSON.stringify(env.API_KEY || ''),
-      'process.env': '({})'
+      // This correctly replaces process.env.API_KEY with the actual value from Netlify
+      'process.env.API_KEY': JSON.stringify(env.API_KEY || '')
     },
     build: {
       outDir: 'dist',
