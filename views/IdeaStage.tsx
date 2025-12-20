@@ -6,11 +6,9 @@ import { ProjectIdea, AppState } from '../types';
 interface IdeaStageProps {
   onNext: (idea: ProjectIdea) => void;
   onBack: () => void;
-  state?: AppState; // Note: In App.tsx render, we should pass state if we want it here.
+  state?: AppState;
 }
 
-// Since props didn't include state originally, we'll assume the parent App passes it.
-// To keep it simple, we'll just use a small hack to get it from local storage if needed or pass it through.
 export const IdeaStage: React.FC<IdeaStageProps> = ({ onNext, onBack }) => {
   const [step, setStep] = useState<'SELECT_MODE' | 'INPUT_INTERESTS' | 'CHOOSE_IDEA' | 'INPUT_RAW'>('SELECT_MODE');
   const [interests, setInterests] = useState('');
@@ -24,6 +22,18 @@ export const IdeaStage: React.FC<IdeaStageProps> = ({ onNext, onBack }) => {
 
   const customKey = localStorage.getItem('hackerhero_apikey');
 
+  const handleError = (e: any, context: string) => {
+    console.error(`Gemini API Error (${context}):`, e);
+    const msg = e.message || "";
+    if (msg.includes("API_KEY_MISSING")) {
+      alert("API Key is missing. Please set it in the Settings (top right gear icon).");
+    } else if (msg.includes("API key not valid")) {
+      alert("The API Key provided is invalid. Please double-check it in Netlify or your settings.");
+    } else {
+      alert(`Error during ${context}: ${msg || "Unknown error"}. Check the browser console (F12) for details.`);
+    }
+  };
+
   const handleGen = async () => {
     setLoading(true);
     try {
@@ -31,7 +41,7 @@ export const IdeaStage: React.FC<IdeaStageProps> = ({ onNext, onBack }) => {
       setOptions(ideas.map(i => ({ ...i, developerPreferences: devPrefs })));
       setStep('CHOOSE_IDEA');
     } catch (e: any) {
-      alert(e.message === 'API_KEY_MISSING' ? "Please set your API key in settings!" : "Limit reached. Try again in a minute.");
+      handleError(e, "generating ideas");
     } finally { setLoading(false); }
   };
 
@@ -41,7 +51,7 @@ export const IdeaStage: React.FC<IdeaStageProps> = ({ onNext, onBack }) => {
       const idea = await refineProjectIdea(rawInput, devPrefs, customKey);
       onNext(idea);
     } catch (e: any) {
-      alert(e.message === 'API_KEY_MISSING' ? "Please set your API key in settings!" : "Error refined idea. Check connection.");
+      handleError(e, "refining idea");
     } finally { setLoading(false); }
   };
 
