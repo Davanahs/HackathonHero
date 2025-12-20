@@ -169,10 +169,15 @@ export const generateRoadmap = async (
 
 export const generateCodeForTask = async (taskTitle: string, taskDesc: string, idea: ProjectIdea, customKey?: string | null): Promise<string> => {
   const ai = getAI(customKey);
-  const prompt = `Write a short, executable code snippet for the task: "${taskTitle}". 
+  const prompt = `Write high-quality, executable source code for the task: "${taskTitle}". 
   Task Details: ${taskDesc}. 
   Project Context: Building "${idea.title}". 
-  Provide ONLY the code block with minimal comments.`;
+  
+  FORMAT RULES:
+  1. Provide ONLY the raw source code. 
+  2. DO NOT include markdown backticks (\`\`\`).
+  3. DO NOT include any introductory or concluding text. 
+  4. Use clear comments for explanation within the code itself.`;
   
   const response = await ai.models.generateContent({ 
     model: MODEL_NAME, 
@@ -187,11 +192,21 @@ export const createMentorChat = (idea: ProjectIdea, customKey?: string | null) =
   return ai.chats.create({
     model: MODEL_NAME,
     config: {
-      systemInstruction: `You are a practical, helpful senior engineer and hackathon mentor. 
+      systemInstruction: `You are a practical senior software engineer and hackathon mentor. 
       The user is building: "${idea.title}". 
-      Problem: ${idea.problem}.
-      Target Audience: ${idea.targetAudience}.
-      Keep your advice extremely concise, technical, and focused on shipping an MVP in 24 hours.`,
+      Context: ${idea.problem}.
+      
+      STRICT COMMUNICATION STYLE:
+      1. Use Markdown for structured responses.
+      2. Use **bold** for key technical terms or headers.
+      3. Use bullet points for steps/lists.
+      4. wrap all code snippets in triple backticks (\`\`\`).
+      5. Organize your response into:
+         - **Observation**: Quick assessment.
+         - **Actionable Steps**: Bullet points of what to do.
+         - **Code snippet**: If applicable.
+         - **Pro-Tip**: A hackathon-specific shortcut.
+      6. Focus 100% on high-velocity MVP building.`,
       thinkingConfig: { thinkingBudget: 0 }
     }
   });

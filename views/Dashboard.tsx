@@ -78,6 +78,51 @@ const BEGINNER_STEPS = [
   }
 ];
 
+// Helper to render basic Markdown features in chat
+const MessageContent = ({ text }: { text: string }) => {
+  // Split by code blocks
+  const segments = text.split(/(```[\s\S]*?```)/g);
+
+  return (
+    <div className="space-y-4">
+      {segments.map((segment, i) => {
+        if (segment.startsWith('```')) {
+          // Extract code content and optional language
+          const code = segment.replace(/```(\w+)?\n?/, '').replace(/```$/, '');
+          return (
+            <pre key={i} className="bg-slate-900 text-emerald-400 p-5 rounded-xl text-xs font-mono overflow-x-auto my-3 border border-slate-700 shadow-inner">
+              <code>{code.trim()}</code>
+            </pre>
+          );
+        }
+
+        // Process standard text: handle bold and newlines
+        const lines = segment.split('\n');
+        return (
+          <div key={i} className="space-y-2">
+            {lines.map((line, j) => {
+              if (!line.trim()) return <div key={j} className="h-2"></div>;
+              
+              // Handle bold segments
+              const boldSegments = line.split(/(\*\*.*?\*\*)/g);
+              return (
+                <div key={j} className="leading-relaxed">
+                  {boldSegments.map((part, k) => {
+                    if (part.startsWith('**') && part.endsWith('**')) {
+                      return <strong key={k} className="font-black text-slate-900 bg-indigo-50/50 px-1 rounded">{part.slice(2, -2)}</strong>;
+                    }
+                    return part;
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
 export const Dashboard: React.FC<DashboardProps> = ({ state, onReset }) => {
   const [activeTab, setActiveTab] = useState<DashboardTab>(DashboardTab.TRACKER);
   const [phases, setPhases] = useState(state.roadmap);
@@ -107,7 +152,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onReset }) => {
       chatSession.current = createMentorChat(state.projectIdea, state.customApiKey);
       setChatHistory([{
         role: 'model',
-        text: `Ready to build "${state.projectIdea.title}"? I'm here to handle the technical heavy lifting. What code do you need?`,
+        text: `**Session Initialized.**\n\nReady to build **${state.projectIdea.title}**? I'm synced with your roadmap. Describe a technical blocker or request a code skeleton below.`,
         timestamp: Date.now()
       }]);
     }
@@ -152,7 +197,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onReset }) => {
     setIsCodeLoading(true);
     setGeneratedCode("");
     try {
-      const code = await generateCodeForTask(task.title, task.description, state.projectIdea, state.customApiKey);
+      let code = await generateCodeForTask(task.title, task.description, state.projectIdea, state.customApiKey);
+      // Strip accidental markdown formatting if AI includes it
+      code = code.replace(/^```[\w]*\n/, '').replace(/\n```$/, '');
       setGeneratedCode(code);
     } catch (e) { setGeneratedCode("// Technical error during generation."); }
     finally { setIsCodeLoading(false); }
@@ -264,11 +311,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onReset }) => {
                   <CatRobot size="compact" />
                </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-10 space-y-6">
+            <div className="flex-1 overflow-y-auto p-10 space-y-8">
               {chatHistory.map((msg, idx) => (
                 <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[75%] rounded-3xl px-7 py-5 text-sm font-medium shadow-sm leading-relaxed ${msg.role === 'user' ? 'bg-[#A696E7] text-white rounded-br-none' : 'bg-white text-slate-800 rounded-bl-none border border-slate-200/60'}`}>
-                    {msg.text}
+                  <div className={`max-w-[85%] rounded-[2rem] px-8 py-6 text-sm font-medium shadow-sm ${msg.role === 'user' ? 'bg-[#A696E7] text-white rounded-br-none' : 'bg-white text-slate-800 rounded-bl-none border border-slate-200/60'}`}>
+                    {msg.role === 'model' ? <MessageContent text={msg.text} /> : msg.text}
                   </div>
                 </div>
               ))}
@@ -317,7 +364,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onReset }) => {
               {generatedCode && (
                 <div className="animate-fade-in relative">
                   <div className="absolute right-4 top-4"><Button variant="outline" className="text-xs py-1.5 px-3 h-auto" onClick={() => navigator.clipboard.writeText(generatedCode)}>Copy Snippet</Button></div>
-                  <pre className="bg-[#1E293B] p-8 rounded-2xl overflow-x-auto text-xs font-mono text-emerald-300 shadow-2xl border-4 border-white">{generatedCode}</pre>
+                  <pre className="bg-[#1E293B] p-8 rounded-2xl overflow-x-auto text-xs font-mono text-emerald-300 shadow-2xl border-4 border-white leading-relaxed">{generatedCode}</pre>
                 </div>
               )}
             </div>
