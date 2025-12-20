@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { AppState, AppStep, ProjectIdea, TeamPlan, RoadmapPhase } from './types';
 import { Landing } from './views/Landing';
@@ -31,9 +30,12 @@ const App: React.FC = () => {
   };
 
   const handleSaveKey = () => {
-    localStorage.setItem('hackerhero_apikey', tempKey);
-    updateState({ customApiKey: tempKey });
+    const cleanKey = tempKey.trim();
+    localStorage.setItem('hackerhero_apikey', cleanKey);
+    updateState({ customApiKey: cleanKey });
     setShowKeyModal(false);
+    // Visual feedback
+    console.log(`[App] API Key updated in storage.`);
   };
 
   const prevStep = () => {
@@ -54,12 +56,14 @@ const App: React.FC = () => {
           <IdeaStage 
             onNext={(idea) => updateState({ projectIdea: idea, currentStep: AppStep.TEAM })} 
             onBack={prevStep} 
+            state={state}
           />
         );
       case AppStep.TEAM:
         return (
           <TeamPlanning 
             idea={state.projectIdea!} 
+            customKey={state.customApiKey}
             onNext={(plan) => updateState({ teamPlan: plan, currentStep: AppStep.ROADMAP })} 
             onBack={prevStep} 
           />
@@ -69,6 +73,7 @@ const App: React.FC = () => {
           <Roadmap 
             idea={state.projectIdea!} 
             teamPlan={state.teamPlan!}
+            customKey={state.customApiKey}
             onNext={(roadmap, duration) => updateState({ roadmap, hackathonDuration: duration, currentStep: AppStep.DASHBOARD })} 
             onBack={prevStep} 
           />

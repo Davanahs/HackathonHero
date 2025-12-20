@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AppState, DashboardTab, RoadmapTask, ChatMessage } from '../types';
 import { Button, Card, Input, Textarea, Icons, CatRobot } from '../components/ui';
@@ -105,14 +104,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onReset }) => {
 
   useEffect(() => {
     if (state.projectIdea && !chatSession.current) {
-      chatSession.current = createMentorChat(state.projectIdea);
+      chatSession.current = createMentorChat(state.projectIdea, state.customApiKey);
       setChatHistory([{
         role: 'model',
         text: `Ready to build "${state.projectIdea.title}"? I'm here to handle the technical heavy lifting. What code do you need?`,
         timestamp: Date.now()
       }]);
     }
-  }, [state.projectIdea]);
+  }, [state.projectIdea, state.customApiKey]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -153,7 +152,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onReset }) => {
     setIsCodeLoading(true);
     setGeneratedCode("");
     try {
-      const code = await generateCodeForTask(task.title, task.description, state.projectIdea);
+      const code = await generateCodeForTask(task.title, task.description, state.projectIdea, state.customApiKey);
       setGeneratedCode(code);
     } catch (e) { setGeneratedCode("// Technical error during generation."); }
     finally { setIsCodeLoading(false); }

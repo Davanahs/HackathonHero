@@ -5,11 +5,12 @@ import { generateTeamRoles, generateTeammatePost } from '../services/geminiServi
 
 interface TeamPlanningProps {
   idea: ProjectIdea;
+  customKey?: string | null;
   onNext: (plan: TeamPlan) => void;
   onBack: () => void;
 }
 
-export const TeamPlanning: React.FC<TeamPlanningProps> = ({ idea, onNext, onBack }) => {
+export const TeamPlanning: React.FC<TeamPlanningProps> = ({ idea, customKey, onNext, onBack }) => {
   const [loading, setLoading] = useState(false);
   const [showFinder, setShowFinder] = useState(false);
   
@@ -20,7 +21,7 @@ export const TeamPlanning: React.FC<TeamPlanningProps> = ({ idea, onNext, onBack
   const handleSelect = async (isSolo: boolean) => {
     setLoading(true);
     try {
-      const plan = await generateTeamRoles(isSolo, idea, isSolo ? 1 : 3);
+      const plan = await generateTeamRoles(isSolo, idea, isSolo ? 1 : 3, customKey);
       onNext(plan);
     } catch (e) {
       onNext({
@@ -34,7 +35,7 @@ export const TeamPlanning: React.FC<TeamPlanningProps> = ({ idea, onNext, onBack
     if(!mySkills) return;
     setFinderLoading(true);
     try {
-      const post = await generateTeammatePost(mySkills, idea.title, idea.problem);
+      const post = await generateTeammatePost(mySkills, idea.title, idea.problem, customKey);
       setGeneratedPost(post);
     } finally { setFinderLoading(false); }
   };

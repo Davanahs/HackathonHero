@@ -3,11 +3,17 @@ import { ProjectIdea, RoadmapPhase, TeamPlan } from "../types";
 
 // Helper to get the AI instance
 const getAI = (customKey?: string | null) => {
-  const apiKey = (customKey && customKey.trim() !== '') ? customKey : process.env.API_KEY;
+  const apiKey = (customKey && customKey.trim() !== '') ? customKey.trim() : process.env.API_KEY;
+  
   if (!apiKey || apiKey.trim() === '') {
     throw new Error("API_KEY_MISSING: No valid Gemini API key found. Please set it in Netlify env or App Settings.");
   }
-  return new GoogleGenAI({ apiKey: apiKey.trim() });
+
+  const cleanKey = apiKey.trim();
+  // Debug log: Shows masked key to verify it is being picked up correctly
+  console.log(`[GeminiService] Using Key: ${cleanKey.substring(0, 4)}...${cleanKey.substring(cleanKey.length - 4)}`);
+  
+  return new GoogleGenAI({ apiKey: cleanKey });
 };
 
 const MODEL_FAST = 'gemini-3-flash-preview';
