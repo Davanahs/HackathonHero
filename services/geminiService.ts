@@ -6,18 +6,18 @@ const getAI = (customKey?: string | null) => {
   const apiKey = (customKey && customKey.trim() !== '') ? customKey.trim() : process.env.API_KEY;
   
   if (!apiKey || apiKey.trim() === '') {
-    throw new Error("API_KEY_MISSING: No valid Gemini API key found. Please set it in Netlify env or App Settings.");
+    throw new Error("API_KEY_MISSING: No valid Gemini API key found. Please set it in App Settings (Gear icon).");
   }
 
   const cleanKey = apiKey.trim();
   // Debug log: Shows masked key to verify it is being picked up correctly
-  console.log(`[GeminiService] Using Key: ${cleanKey.substring(0, 4)}...${cleanKey.substring(cleanKey.length - 4)}`);
+  console.log(`[GeminiService] Initializing with Key: ${cleanKey.substring(0, 4)}...${cleanKey.substring(cleanKey.length - 4)}`);
   
   return new GoogleGenAI({ apiKey: cleanKey });
 };
 
-const MODEL_FAST = 'gemini-3-flash-preview';
-const MODEL_PRO = 'gemini-3-pro-preview';
+// Standardizing on Flash for maximum availability and speed on free tiers
+const MODEL_NAME = 'gemini-3-flash-preview';
 
 export const generateIdeaOptions = async (
   interests: string,
@@ -51,7 +51,7 @@ export const generateIdeaOptions = async (
   };
 
   const response = await ai.models.generateContent({
-    model: MODEL_FAST,
+    model: MODEL_NAME,
     contents: [{ parts: [{ text: prompt }] }],
     config: {
       responseMimeType: "application/json",
@@ -82,7 +82,7 @@ export const refineProjectIdea = async (rawInput: string, devPrefs?: string, cus
   };
 
   const response = await ai.models.generateContent({
-    model: MODEL_FAST,
+    model: MODEL_NAME,
     contents: [{ parts: [{ text: prompt }] }],
     config: {
       responseMimeType: "application/json",
@@ -143,7 +143,7 @@ export const generateRoadmap = async (
   };
 
   const response = await ai.models.generateContent({
-    model: MODEL_FAST,
+    model: MODEL_NAME,
     contents: [{ parts: [{ text: prompt }] }],
     config: {
       responseMimeType: "application/json",
@@ -169,10 +169,15 @@ export const generateRoadmap = async (
 
 export const generateCodeForTask = async (taskTitle: string, taskDesc: string, idea: ProjectIdea, customKey?: string | null): Promise<string> => {
   const ai = getAI(customKey);
-  const prompt = `Write a PRACTICAL implementation for: ${taskTitle}. Context: ${idea.title}. Details: ${taskDesc}. Output ONLY code.`;
+  const prompt = `Write a short, executable code snippet for the task: "${taskTitle}". 
+  Task Details: ${taskDesc}. 
+  Project Context: Building "${idea.title}". 
+  Provide ONLY the code block with minimal comments.`;
+  
   const response = await ai.models.generateContent({ 
-    model: MODEL_PRO, 
-    contents: [{ parts: [{ text: prompt }] }] 
+    model: MODEL_NAME, 
+    contents: [{ parts: [{ text: prompt }] }],
+    config: { thinkingConfig: { thinkingBudget: 0 } }
   });
   return response.text || "// Error generating code.";
 };
@@ -180,9 +185,14 @@ export const generateCodeForTask = async (taskTitle: string, taskDesc: string, i
 export const createMentorChat = (idea: ProjectIdea, customKey?: string | null) => {
   const ai = getAI(customKey);
   return ai.chats.create({
-    model: MODEL_PRO,
+    model: MODEL_NAME,
     config: {
-      systemInstruction: `You are a practical hackathon mentor. User is building "${idea.title}".`
+      systemInstruction: `You are a practical, helpful senior engineer and hackathon mentor. 
+      The user is building: "${idea.title}". 
+      Problem: ${idea.problem}.
+      Target Audience: ${idea.targetAudience}.
+      Keep your advice extremely concise, technical, and focused on shipping an MVP in 24 hours.`,
+      thinkingConfig: { thinkingBudget: 0 }
     }
   });
 };
@@ -191,7 +201,7 @@ export const generateTeammatePost = async (skills: string, interests: string, id
   const ai = getAI(customKey);
   const prompt = `Write a short Discord post: I have skills in ${skills}, looking to join or build a project about ${interests}. ${ideaSummary ? `Current idea: ${ideaSummary}` : ""}`;
   const response = await ai.models.generateContent({ 
-    model: MODEL_FAST, 
+    model: MODEL_NAME, 
     contents: [{ parts: [{ text: prompt }] }],
     config: { thinkingConfig: { thinkingBudget: 0 } }
   });
@@ -219,7 +229,7 @@ export const generateTeamRoles = async (isSolo: boolean, idea: ProjectIdea, team
     }
   };
   const response = await ai.models.generateContent({
-    model: MODEL_FAST,
+    model: MODEL_NAME,
     contents: [{ parts: [{ text: prompt }] }],
     config: { 
       responseMimeType: "application/json", 
