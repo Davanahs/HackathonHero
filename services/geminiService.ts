@@ -3,9 +3,11 @@ import { ProjectIdea, RoadmapPhase, TeamPlan } from "../types";
 
 // Helper to get the AI instance
 const getAI = (customKey?: string | null) => {
-  const apiKey = customKey || process.env.API_KEY;
-  if (!apiKey) throw new Error("API_KEY_MISSING");
-  return new GoogleGenAI({ apiKey });
+  const apiKey = (customKey && customKey.trim() !== '') ? customKey : process.env.API_KEY;
+  if (!apiKey || apiKey.trim() === '') {
+    throw new Error("API_KEY_MISSING: No valid Gemini API key found. Please set it in Netlify env or App Settings.");
+  }
+  return new GoogleGenAI({ apiKey: apiKey.trim() });
 };
 
 const MODEL_FAST = 'gemini-3-flash-preview';
@@ -44,10 +46,11 @@ export const generateIdeaOptions = async (
 
   const response = await ai.models.generateContent({
     model: MODEL_FAST,
-    contents: prompt,
+    contents: [{ parts: [{ text: prompt }] }],
     config: {
       responseMimeType: "application/json",
-      responseSchema: responseSchema
+      responseSchema: responseSchema,
+      thinkingConfig: { thinkingBudget: 0 }
     }
   });
 
@@ -74,10 +77,11 @@ export const refineProjectIdea = async (rawInput: string, devPrefs?: string, cus
 
   const response = await ai.models.generateContent({
     model: MODEL_FAST,
-    contents: prompt,
+    contents: [{ parts: [{ text: prompt }] }],
     config: {
       responseMimeType: "application/json",
-      responseSchema: responseSchema
+      responseSchema: responseSchema,
+      thinkingConfig: { thinkingBudget: 0 }
     }
   });
 
@@ -134,10 +138,11 @@ export const generateRoadmap = async (
 
   const response = await ai.models.generateContent({
     model: MODEL_FAST,
-    contents: prompt,
+    contents: [{ parts: [{ text: prompt }] }],
     config: {
       responseMimeType: "application/json",
-      responseSchema: responseSchema
+      responseSchema: responseSchema,
+      thinkingConfig: { thinkingBudget: 0 }
     }
   });
 
@@ -159,7 +164,10 @@ export const generateRoadmap = async (
 export const generateCodeForTask = async (taskTitle: string, taskDesc: string, idea: ProjectIdea, customKey?: string | null): Promise<string> => {
   const ai = getAI(customKey);
   const prompt = `Write a PRACTICAL implementation for: ${taskTitle}. Context: ${idea.title}. Details: ${taskDesc}. Output ONLY code.`;
-  const response = await ai.models.generateContent({ model: MODEL_PRO, contents: prompt });
+  const response = await ai.models.generateContent({ 
+    model: MODEL_PRO, 
+    contents: [{ parts: [{ text: prompt }] }] 
+  });
   return response.text || "// Error generating code.";
 };
 
@@ -176,7 +184,11 @@ export const createMentorChat = (idea: ProjectIdea, customKey?: string | null) =
 export const generateTeammatePost = async (skills: string, interests: string, ideaSummary?: string, customKey?: string | null): Promise<string> => {
   const ai = getAI(customKey);
   const prompt = `Write a short Discord post: I have skills in ${skills}, looking to join or build a project about ${interests}. ${ideaSummary ? `Current idea: ${ideaSummary}` : ""}`;
-  const response = await ai.models.generateContent({ model: MODEL_FAST, contents: prompt });
+  const response = await ai.models.generateContent({ 
+    model: MODEL_FAST, 
+    contents: [{ parts: [{ text: prompt }] }],
+    config: { thinkingConfig: { thinkingBudget: 0 } }
+  });
   return response.text || "";
 };
 
@@ -202,8 +214,12 @@ export const generateTeamRoles = async (isSolo: boolean, idea: ProjectIdea, team
   };
   const response = await ai.models.generateContent({
     model: MODEL_FAST,
-    contents: prompt,
-    config: { responseMimeType: "application/json", responseSchema: responseSchema }
+    contents: [{ parts: [{ text: prompt }] }],
+    config: { 
+      responseMimeType: "application/json", 
+      responseSchema: responseSchema,
+      thinkingConfig: { thinkingBudget: 0 }
+    }
   });
   return response.text ? JSON.parse(response.text) : { isSolo, roles: [] };
 };
