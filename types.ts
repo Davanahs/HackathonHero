@@ -18,6 +18,7 @@ export interface ProjectIdea {
   targetAudience: string;
   coreFeatures: string[];
   techStackRecommendation?: string[];
+  developerPreferences?: string;
 }
 
 export interface TeamRole {

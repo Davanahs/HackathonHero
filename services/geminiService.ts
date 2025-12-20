@@ -4,10 +4,12 @@ import { ProjectIdea, RoadmapPhase, TeamPlan } from "../types";
 // Initialize Gemini Client
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-const MODEL_FAST = 'gemini-2.5-flash';
+// Update to the latest recommended models
+const MODEL_FAST = 'gemini-3-flash-preview';
+const MODEL_PRO = 'gemini-3-pro-preview';
 
 /**
- * Generates a list of project ideas based on 3 specific inputs.
+ * Generates project ideas with a focus on practical feasibility.
  */
 export const generateIdeaOptions = async (
   interests: string,
@@ -17,10 +19,11 @@ export const generateIdeaOptions = async (
   const prompt = `I need 3 distinct hackathon ideas based on:
     1. Interests: ${interests}
     2. Loved Tech: ${tech}
-    3. Real-world Frustration: ${frustration}
+    3. Frustration: ${frustration}
     
-    Generate 3 unique, feasible, and impressive MVP ideas for a 24-hour hackathon.
-    For each, provide a title, problem, audience, and core features.`;
+    CRITICAL: Only suggest ideas that can be built as a working MVP in 24 hours. 
+    Focus on simple CRUD apps, specialized dashboards, or API-first tools.
+    Provide a title, problem, audience, and 3-4 specific features.`;
 
   const responseSchema: Schema = {
     type: Type.ARRAY,
@@ -30,14 +33,8 @@ export const generateIdeaOptions = async (
         title: { type: Type.STRING },
         problem: { type: Type.STRING },
         targetAudience: { type: Type.STRING },
-        coreFeatures: { 
-          type: Type.ARRAY, 
-          items: { type: Type.STRING } 
-        },
-        techStackRecommendation: {
-          type: Type.ARRAY,
-          items: { type: Type.STRING }
-        }
+        coreFeatures: { type: Type.ARRAY, items: { type: Type.STRING } },
+        techStackRecommendation: { type: Type.ARRAY, items: { type: Type.STRING } }
       },
       required: ["title", "problem", "targetAudience", "coreFeatures"]
     }
@@ -52,18 +49,16 @@ export const generateIdeaOptions = async (
     }
   });
 
-  if (response.text) {
-    return JSON.parse(response.text) as ProjectIdea[];
-  }
-  throw new Error("Failed to generate ideas");
+  return response.text ? JSON.parse(response.text) : [];
 };
 
 /**
- * Refines a single raw idea.
+ * Refines a project idea into a practical execution plan.
  */
-export const refineProjectIdea = async (rawInput: string): Promise<ProjectIdea> => {
-  const prompt = `Refine this hackathon idea: "${rawInput}". 
-       Structure it clearly, defining the exact problem, audience, and core features feasible in 24-48 hours.`;
+export const refineProjectIdea = async (rawInput: string, devPrefs?: string): Promise<ProjectIdea> => {
+  const prompt = `Convert this rough idea into a practical MVP plan: "${rawInput}". 
+       ${devPrefs ? `TECHNICAL PREFERENCES: ${devPrefs}` : ""}
+       Strip away theoretical fluff. Define the core loop and only the features needed for a winning demo.`;
 
   const responseSchema: Schema = {
     type: Type.OBJECT,
@@ -86,105 +81,37 @@ export const refineProjectIdea = async (rawInput: string): Promise<ProjectIdea> 
     }
   });
 
-  if (response.text) {
-    return JSON.parse(response.text) as ProjectIdea;
-  }
-  throw new Error("Failed to refine idea");
+  const idea = response.text ? JSON.parse(response.text) : null;
+  if (idea) idea.developerPreferences = devPrefs;
+  return idea;
 };
 
 /**
- * Generates a "Looking for Team" post for social media/Discord.
- */
-export const generateTeammatePost = async (
-  skills: string,
-  interests: string,
-  ideaSummary?: string
-): Promise<string> => {
-  const prompt = `Write a catchy "Looking for Team" post for a Hackathon Discord server.
-  My Skills: ${skills}
-  My Interests: ${interests}
-  ${ideaSummary ? `My Idea: ${ideaSummary}` : "I am looking to join a team."}
-  
-  Make it friendly, professional, and emphasize collaboration. Use emojis.`;
-
-  const response = await ai.models.generateContent({
-    model: MODEL_FAST,
-    contents: prompt,
-  });
-
-  return response.text || "Could not generate post.";
-};
-
-/**
- * Generates roles based on team type and project idea.
- */
-export const generateTeamRoles = async (
-  isSolo: boolean,
-  idea: ProjectIdea,
-  teamSize?: number
-): Promise<TeamPlan> => {
-  const prompt = `Create a team role breakdown for a hackathon project titled "${idea.title}".
-    Context: ${idea.problem}
-    Mode: ${isSolo ? "Solo Developer" : `Team of ${teamSize || 3}`}.
-    
-    Explain the core roles (Frontend, Backend, Design/UX, Pitch/Product) relative to this specific project.
-    If Solo, explain how to wear all hats.`;
-
-  const responseSchema: Schema = {
-    type: Type.OBJECT,
-    properties: {
-      isSolo: { type: Type.BOOLEAN },
-      roles: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            roleName: { type: Type.STRING },
-            responsibilities: { type: Type.ARRAY, items: { type: Type.STRING } },
-            skills: { type: Type.ARRAY, items: { type: Type.STRING } }
-          }
-        }
-      }
-    }
-  };
-
-  const response = await ai.models.generateContent({
-    model: MODEL_FAST,
-    contents: prompt,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: responseSchema
-    }
-  });
-
-  if (response.text) {
-    return JSON.parse(response.text) as TeamPlan;
-  }
-  throw new Error("Failed to generate team roles");
-};
-
-/**
- * Generates a roadmap schedule.
+ * Generates a roadmap focused on practical, executable tasks.
  */
 export const generateRoadmap = async (
   duration: '24h' | '48h',
   idea: ProjectIdea
 ): Promise<RoadmapPhase[]> => {
-  const prompt = `Create a highly technical ${duration} hackathon roadmap for "${idea.title}".
-    Features: ${idea.coreFeatures.join(', ')}.
+  const prompt = `Create a PRACTICAL technical roadmap for "${idea.title}".
+    ${idea.developerPreferences ? `TECHNICAL STYLE PREFERENCES: ${idea.developerPreferences}` : ""}
     
-    Structure strictly into these 4 phases:
-    1. Phase 1: Setup & Data Schema (Hours 0-4)
-    2. Phase 2: Core API & Logic (Hours 4-${duration === '24h' ? '16' : '32'})
-    3. Phase 3: UI Integration & Styling (Hours ${duration === '24h' ? '16-20' : '32-40'})
-    4. Phase 4: Polish & Deployment (Hours ${duration === '24h' ? '20-24' : '40-48'})
+    CRITICAL: For the first phase, include EXPLICIT and DETAILED website creation steps.
+    Example of a GOOD first phase:
+    1. "Initialize Next.js with Lucide Icons and Tailwind Config"
+    2. "Define global colors in globals.css following the brand palette"
+    3. "Scaffold the main Layout.tsx with a Sidebar and Header"
+    4. "Setup Database Schema in Prisma/Supabase"
     
-    CRITICAL INSTRUCTION: Be extremely specific and technical. Do not give generic advice like "Plan the app".
-    Instead, say "Initialize React app with Vite and set up Tailwind", "Create MongoDB Schema for User", "Build POST /api/v1/auth endpoint".
+    RULES:
+    1. Tasks must be ACTIONABLE code-focused steps.
+    2. Provide the EXACT command or library to use in the description.
     
-    For each task:
-    - Prefix the title with the role: [Frontend], [Backend], [Design], or [Fullstack].
-    - In the description, name specific libraries or commands to use.`;
+    Phases:
+    1. Skeleton & Tools (Hours 0-4)
+    2. Data & Business Logic (Hours 4-${duration === '24h' ? '12' : '24'})
+    3. UI Layout & State (Hours ${duration === '24h' ? '12-20' : '24-40'})
+    4. Finishing & Deployment (Final 4 hours)`;
 
   const responseSchema: Schema = {
     type: Type.ARRAY,
@@ -198,11 +125,8 @@ export const generateRoadmap = async (
           items: {
             type: Type.OBJECT,
             properties: {
-              id: { type: Type.STRING },
-              time: { type: Type.STRING },
               title: { type: Type.STRING },
-              description: { type: Type.STRING, description: "Technical instruction" },
-              completed: { type: Type.BOOLEAN }
+              description: { type: Type.STRING },
             },
             required: ["title", "description"]
           }
@@ -222,52 +146,86 @@ export const generateRoadmap = async (
   });
 
   if (response.text) {
-    const phases = JSON.parse(response.text) as RoadmapPhase[];
-    return phases.map((phase, pIdx) => ({
+    const rawPhases = JSON.parse(response.text) as RoadmapPhase[];
+    return rawPhases.map((phase, pIdx) => ({
       ...phase,
       tasks: phase.tasks.map((task, tIdx) => ({
         ...task,
         id: `p${pIdx}_t${tIdx}`,
-        completed: false
+        completed: false,
+        time: ""
       }))
     }));
   }
-  throw new Error("Failed to generate roadmap");
+  return [];
 };
 
 /**
- * Generates code for a specific task.
+ * Generates practical code snippets for technical tasks using the Pro model for complex logic.
  */
 export const generateCodeForTask = async (taskTitle: string, taskDesc: string, idea: ProjectIdea): Promise<string> => {
-  const prompt = `Write the code implementation for the following hackathon task.
-    Project: ${idea.title} (${idea.coreFeatures.join(', ')})
-    Task: ${taskTitle}
-    Details: ${taskDesc}
+  const prompt = `Write a PRACTICAL implementation for: ${taskTitle}.
+    Context: ${idea.title}.
+    Details: ${taskDesc}.
+    ${idea.developerPreferences ? `MANDATORY CODING STYLE: ${idea.developerPreferences}` : ""}
     
-    Provide the code in a single Markdown block (e.g. \`\`\`tsx ... \`\`\`).
-    If multiple files are needed, combine them clearly or choose the most critical file.
-    Do not add excessive explanation, just the code.`;
+    Output ONLY code. No explanations. Use standard, beginner-friendly libraries unless preferences say otherwise.`;
 
   const response = await ai.models.generateContent({
-    model: MODEL_FAST,
+    model: MODEL_PRO,
     contents: prompt,
   });
 
-  return response.text || "// Could not generate code.";
+  return response.text || "// Error generating code.";
 };
 
 /**
- * Mentor Chat stream.
+ * Creates a mentor chat session using the Pro model for advanced reasoning.
  */
 export const createMentorChat = (idea: ProjectIdea) => {
-  const chat = ai.chats.create({
-    model: MODEL_FAST,
+  return ai.chats.create({
+    model: MODEL_PRO,
     config: {
-      systemInstruction: `You are a senior hackathon mentor. 
+      systemInstruction: `You are a practical hackathon mentor. 
       The user is building "${idea.title}".
-      Provide short, sharp, and highly technical advice. 
-      Prioritize speed and "hacky" but working solutions.`
+      ${idea.developerPreferences ? `THE USER PREFERS THIS TECHNICAL STYLE: ${idea.developerPreferences}` : ""}
+      RULES:
+      1. Give technical code solutions, not theory.
+      2. Recommend standard libraries unless preferences specify otherwise.
+      3. If they ask a complex question, simplify it into a 15-minute hack.`
     }
   });
-  return chat;
+};
+
+export const generateTeammatePost = async (skills: string, interests: string, ideaSummary?: string): Promise<string> => {
+  const prompt = `Write a short Discord post: I have skills in ${skills}, looking to join or build a project about ${interests}. ${ideaSummary ? `Current idea: ${ideaSummary}` : ""}`;
+  const response = await ai.models.generateContent({ model: MODEL_FAST, contents: prompt });
+  return response.text || "";
+};
+
+export const generateTeamRoles = async (isSolo: boolean, idea: ProjectIdea, teamSize?: number): Promise<TeamPlan> => {
+  const prompt = `Roles for "${idea.title}" (${isSolo ? "Solo" : "Team of " + teamSize}). Describe 3-4 practical roles.`;
+  const responseSchema: Schema = {
+    type: Type.OBJECT,
+    properties: {
+      isSolo: { type: Type.BOOLEAN },
+      roles: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            roleName: { type: Type.STRING },
+            responsibilities: { type: Type.ARRAY, items: { type: Type.STRING } },
+            skills: { type: Type.ARRAY, items: { type: Type.STRING } }
+          }
+        }
+      }
+    }
+  };
+  const response = await ai.models.generateContent({
+    model: MODEL_FAST,
+    contents: prompt,
+    config: { responseMimeType: "application/json", responseSchema: responseSchema }
+  });
+  return response.text ? JSON.parse(response.text) : { isSolo, roles: [] };
 };
