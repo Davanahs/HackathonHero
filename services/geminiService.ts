@@ -1,5 +1,4 @@
-
-import { GoogleGenAI, Type, Schema } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 import { ProjectIdea, RoadmapPhase, TeamPlan } from "../types";
 
 // Helper to get the AI instance
@@ -28,7 +27,7 @@ export const generateIdeaOptions = async (
     Focus on simple CRUD apps, specialized dashboards, or API-first tools.
     Provide a title, problem, audience, and 3-4 specific features.`;
 
-  const responseSchema: Schema = {
+  const responseSchema = {
     type: Type.ARRAY,
     items: {
       type: Type.OBJECT,
@@ -61,7 +60,7 @@ export const refineProjectIdea = async (rawInput: string, devPrefs?: string, cus
        ${devPrefs ? `TECHNICAL PREFERENCES: ${devPrefs}` : ""}
        Strip away theoretical fluff. Define the core loop and only the features needed for a winning demo.`;
 
-  const responseSchema: Schema = {
+  const responseSchema = {
     type: Type.OBJECT,
     properties: {
       title: { type: Type.STRING },
@@ -109,7 +108,7 @@ export const generateRoadmap = async (
 
     CRITICAL: For every task, assign it to one or more of the specific roles provided in the TEAM ROLES list.`;
 
-  const responseSchema: Schema = {
+  const responseSchema = {
     type: Type.ARRAY,
     items: {
       type: Type.OBJECT,
@@ -184,7 +183,7 @@ export const generateTeammatePost = async (skills: string, interests: string, id
 export const generateTeamRoles = async (isSolo: boolean, idea: ProjectIdea, teamSize?: number, customKey?: string | null): Promise<TeamPlan> => {
   const ai = getAI(customKey);
   const prompt = `Roles for "${idea.title}" (${isSolo ? "Solo" : "Team of " + teamSize}). Describe 3-4 practical roles.`;
-  const responseSchema: Schema = {
+  const responseSchema = {
     type: Type.OBJECT,
     properties: {
       isSolo: { type: Type.BOOLEAN },
