@@ -210,15 +210,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onReset }) => {
               <div ref={chatEndRef}></div>
             </div>
 
-            {/* Optimized Chat Input Section - Efficient Wide Layout */}
+            {/* Optimized Chat Input Section - Perfect Horizontal Fit */}
             <div className="p-8 bg-white border-t border-slate-100">
               <div className="flex gap-4 max-w-full mx-auto w-full items-center px-4">
                 <button className={`w-16 h-16 rounded-2xl flex items-center justify-center border-2 shrink-0 transition-all ${isListening ? 'bg-red-500 border-red-500 text-white shadow-lg' : 'border-slate-200 text-slate-400 hover:border-[#A696E7] hover:text-[#A696E7]'}`} onClick={startListening} title="Voice Input">
                   <Icons.Mic />
                 </button>
-                <div className="flex-1">
+                <div className="flex-1 flex items-stretch">
                   <Textarea 
-                    className="!py-4 !px-6 h-16 !min-h-[64px] text-lg !bg-slate-50 border-0 focus:!bg-white shadow-inner focus:ring-0 focus:shadow-md transition-all resize-none scrollbar-thin overflow-y-auto" 
+                    className="!py-4 !px-6 h-16 !min-h-[64px] text-lg !bg-slate-50 border-0 focus:!bg-white shadow-inner focus:ring-0 focus:shadow-md transition-all resize-none scrollbar-thin overflow-y-auto w-full" 
                     value={chatInput} 
                     onChange={e => setChatInput(e.target.value)} 
                     onKeyDown={e => {

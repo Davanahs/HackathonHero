@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import { Button, Card, Input, Textarea, Icons, BackButton } from '../components/ui';
 import { generateIdeaOptions, refineProjectIdea } from '../services/geminiService';
-import { ProjectIdea } from '../types';
+import { ProjectIdea, AppState } from '../types';
 
 interface IdeaStageProps {
   onNext: (idea: ProjectIdea) => void;
   onBack: () => void;
+  state?: AppState; // Note: In App.tsx render, we should pass state if we want it here.
 }
 
+// Since props didn't include state originally, we'll assume the parent App passes it.
+// To keep it simple, we'll just use a small hack to get it from local storage if needed or pass it through.
 export const IdeaStage: React.FC<IdeaStageProps> = ({ onNext, onBack }) => {
   const [step, setStep] = useState<'SELECT_MODE' | 'INPUT_INTERESTS' | 'CHOOSE_IDEA' | 'INPUT_RAW'>('SELECT_MODE');
   const [interests, setInterests] = useState('');
@@ -19,27 +22,35 @@ export const IdeaStage: React.FC<IdeaStageProps> = ({ onNext, onBack }) => {
   const [showExpert, setShowExpert] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const customKey = localStorage.getItem('hackerhero_apikey');
+
   const handleGen = async () => {
     setLoading(true);
     try {
-      const ideas = await generateIdeaOptions(interests, tech, frustration);
+      const ideas = await generateIdeaOptions(interests, tech, frustration, customKey);
       setOptions(ideas.map(i => ({ ...i, developerPreferences: devPrefs })));
       setStep('CHOOSE_IDEA');
+    } catch (e: any) {
+      alert(e.message === 'API_KEY_MISSING' ? "Please set your API key in settings!" : "Limit reached. Try again in a minute.");
     } finally { setLoading(false); }
   };
 
   const handleRefine = async () => {
     setLoading(true);
     try {
-      const idea = await refineProjectIdea(rawInput, devPrefs);
+      const idea = await refineProjectIdea(rawInput, devPrefs, customKey);
       onNext(idea);
+    } catch (e: any) {
+      alert(e.message === 'API_KEY_MISSING' ? "Please set your API key in settings!" : "Error refined idea. Check connection.");
     } finally { setLoading(false); }
   };
 
   if (step === 'SELECT_MODE') return (
     <div className="max-w-4xl mx-auto py-12">
       <BackButton onClick={onBack} />
-      <h2 className="text-4xl font-black text-slate-800 mb-12 tracking-tight manual-font">How shall we begin <span className="text-[#A696E7]">?</span></h2>
+      <div className="text-center mb-12">
+        <h2 className="text-4xl md:text-5xl font-black text-slate-800 tracking-tight manual-font">How shall we begin <span className="text-[#A696E7]">?</span></h2>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <button onClick={() => setStep('INPUT_INTERESTS')} className="p-10 rounded-3xl glass-surface text-left group transition-all hover:ring-2 hover:ring-[#A696E7] hover:bg-white shadow-xl">
           <div className="p-4 bg-indigo-50 rounded-xl w-fit mb-6 text-[#A696E7] shadow-sm"><Icons.Sparkles /></div>
@@ -58,11 +69,14 @@ export const IdeaStage: React.FC<IdeaStageProps> = ({ onNext, onBack }) => {
   if (step === 'INPUT_INTERESTS') return (
     <div className="max-w-xl mx-auto py-12">
       <BackButton onClick={setStep.bind(null, 'SELECT_MODE')} />
-      <Card title="Sketch your world">
+      <div className="text-center mb-10">
+        <h2 className="text-4xl font-black text-slate-800 tracking-tight manual-font">Sketch your <span className="text-[#A696E7]">world</span></h2>
+      </div>
+      <Card>
         <div className="space-y-6">
-          <div><label className="text-[10px] font-black text-[#A696E7] uppercase tracking-widest block mb-2">My Interests</label><Input value={interests} onChange={e => setInterests(e.target.value)} placeholder="e.g. AI, Music, Social Good" /></div>
-          <div><label className="text-[10px] font-black text-[#A696E7] uppercase tracking-widest block mb-2">Primary Tech</label><Input value={tech} onChange={e => setTech(e.target.value)} placeholder="e.g. React, Tailwind, Python" /></div>
-          <div><label className="text-[10px] font-black text-[#A696E7] uppercase tracking-widest block mb-2">A Frustration</label><Input value={frustration} onChange={e => setFrustration(e.target.value)} placeholder="e.g. Can't track local library books" /></div>
+          <div><label className="text-[10px] font-black text-[#A696E7] uppercase tracking-widest block mb-2">My Interests</label><Input value={interests} onChange={(e: any) => setInterests(e.target.value)} placeholder="e.g. AI, Music, Social Good" /></div>
+          <div><label className="text-[10px] font-black text-[#A696E7] uppercase tracking-widest block mb-2">Primary Tech</label><Input value={tech} onChange={(e: any) => setTech(e.target.value)} placeholder="e.g. React, Tailwind, Python" /></div>
+          <div><label className="text-[10px] font-black text-[#A696E7] uppercase tracking-widest block mb-2">A Frustration</label><Input value={frustration} onChange={(e: any) => setFrustration(e.target.value)} placeholder="e.g. Can't track local library books" /></div>
           
           <div className="pt-2">
             <button onClick={() => setShowExpert(!showExpert)} className="flex items-center gap-2 text-[10px] font-bold text-slate-400 hover:text-[#A696E7] transition-all">
@@ -71,7 +85,7 @@ export const IdeaStage: React.FC<IdeaStageProps> = ({ onNext, onBack }) => {
             {showExpert && (
               <div className="mt-4 animate-fade-in">
                 <label className="text-[10px] font-black text-[#A696E7] uppercase tracking-widest block mb-2">Custom Preferences</label>
-                <Input value={devPrefs} onChange={e => setDevPrefs(e.target.value)} placeholder="e.g. Clean architecture, use TypeScript..." />
+                <Input value={devPrefs} onChange={(e: any) => setDevPrefs(e.target.value)} placeholder="e.g. Clean architecture, use TypeScript..." />
               </div>
             )}
           </div>
@@ -94,11 +108,11 @@ export const IdeaStage: React.FC<IdeaStageProps> = ({ onNext, onBack }) => {
             <div className="mt-auto">
               <span className="text-[10px] font-black uppercase tracking-widest text-[#A696E7] mb-2 block">Key Features</span>
               <div className="flex flex-wrap gap-2 mb-6">
-                {idea.coreFeatures.slice(0, 2).map((f, idx) => (
-                  <span key={idx} className="bg-white/50 px-2 py-1 rounded text-[10px] border border-slate-100">{f}</span>
+                {idea.coreFeatures.slice(0, 3).map((f, idx) => (
+                  <span key={idx} className="bg-[#A696E7]/5 text-[#8B7EDC] px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest border border-[#A696E7]/10">{f}</span>
                 ))}
               </div>
-              <Button onClick={(e) => { e.stopPropagation(); onNext(idea); }} className="w-full">Select Project</Button>
+              <Button onClick={(e: any) => { e.stopPropagation(); onNext(idea); }} className="w-full">Select Project</Button>
             </div>
           </Card>
         ))}
@@ -107,34 +121,52 @@ export const IdeaStage: React.FC<IdeaStageProps> = ({ onNext, onBack }) => {
   );
 
   return (
-    <div className="max-w-[1200px] mx-auto py-12">
-      <BackButton onClick={setStep.bind(null, 'SELECT_MODE')} />
-      <Card title="The Masterplan" className="!px-12 py-10">
-        <p className="text-sm text-slate-500 mb-6 font-medium">Dump your idea here. Features, goals, vibe... I'll analyze the scope and help you polish it into a technical build plan.</p>
-        <Textarea 
-          className="font-medium text-slate-700 !min-h-[140px] w-full !bg-white shadow-xl border-slate-200 text-lg p-8 scrollbar-thin" 
-          value={rawInput} 
-          onChange={e => setRawInput(e.target.value)} 
-          placeholder="Prompt 1: Problem-Solution Clarity “I have an idea for a hackathon project...”" 
-        />
-        
-        <div className="mt-8 flex items-center justify-between">
-          <button onClick={() => setShowExpert(!showExpert)} className="flex items-center gap-2 text-[11px] font-black text-slate-400 hover:text-[#A696E7] transition-all uppercase tracking-widest">
-            <Icons.Settings /> {showExpert ? 'Hide Preferences' : 'Add Tech Style (TypeScript, UI Library, etc)'}
-          </button>
-          {showExpert && (
-            <div className="flex-1 ml-6 animate-fade-in">
-              <Input 
-                value={devPrefs} 
-                onChange={e => setDevPrefs(e.target.value)} 
-                placeholder="Style preferences (e.g. Tailwind + Framer Motion)..." 
-                className="py-2 text-xs"
-              />
-            </div>
-          )}
+    <div className="max-w-6xl mx-auto py-12">
+      <div className="mb-4">
+        <BackButton onClick={setStep.bind(null, 'SELECT_MODE')} />
+      </div>
+      
+      <div className="text-center mb-10">
+        <h2 className="text-5xl font-black text-slate-800 tracking-tight manual-font">
+          The <span className="text-[#A696E7]">Masterplan</span>
+        </h2>
+      </div>
+
+      <Card className="!p-0 overflow-hidden shadow-2xl border-white/80">
+        <div className="p-12 pb-6">
+          <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 p-4 mb-8">
+            <Textarea 
+              className="!border-0 !bg-transparent !shadow-none !min-h-[300px] text-xl font-medium text-slate-700 placeholder:text-slate-200 focus:ring-0 leading-relaxed" 
+              value={rawInput} 
+              onChange={(e: any) => setRawInput(e.target.value)} 
+              placeholder="Example: I want to build a real-time collaborative code editor..." 
+            />
+          </div>
+          
+          <div className="flex items-center gap-4 mb-10">
+            <button onClick={() => setShowExpert(!showExpert)} className="flex items-center gap-2 text-[11px] font-black text-[#A696E7] hover:text-[#8B7EDC] transition-all uppercase tracking-widest">
+              <Icons.Settings /> {showExpert ? 'Hide Tech Style' : 'Add Tech Style'}
+            </button>
+            {showExpert && (
+              <div className="flex-1 animate-fade-in">
+                <Input 
+                  value={devPrefs} 
+                  onChange={(e: any) => setDevPrefs(e.target.value)} 
+                  placeholder="e.g. Tailwind + Framer Motion..." 
+                  className="!py-2 !px-4 text-xs h-10"
+                />
+              </div>
+            )}
+          </div>
         </div>
 
-        <Button onClick={handleRefine} isLoading={loading} className="w-full mt-10 py-5 shadow-2xl text-xl uppercase tracking-widest font-black">Refine Into Technical Steps</Button>
+        <button 
+          onClick={handleRefine} 
+          disabled={loading || !rawInput.trim()}
+          className="w-full py-10 bg-gradient-to-r from-[#A696E7] to-[#8B7EDC] text-white font-black text-3xl uppercase tracking-[0.25em] hover:brightness-105 transition-all disabled:opacity-50 flex items-center justify-center gap-4 shadow-2xl"
+        >
+          {loading ? "Architecting..." : "Refine Technical Steps"}
+        </button>
       </Card>
     </div>
   );

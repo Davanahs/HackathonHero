@@ -1,21 +1,23 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { ProjectIdea, RoadmapPhase, TeamPlan } from "../types";
 
-// Initialize Gemini Client
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Helper to get the AI instance
+const getAI = (customKey?: string | null) => {
+  const apiKey = customKey || process.env.API_KEY;
+  if (!apiKey) throw new Error("API_KEY_MISSING");
+  return new GoogleGenAI({ apiKey });
+};
 
-// Update to the latest recommended models
 const MODEL_FAST = 'gemini-3-flash-preview';
 const MODEL_PRO = 'gemini-3-pro-preview';
 
-/**
- * Generates project ideas with a focus on practical feasibility.
- */
 export const generateIdeaOptions = async (
   interests: string,
   tech: string,
-  frustration: string
+  frustration: string,
+  customKey?: string | null
 ): Promise<ProjectIdea[]> => {
+  const ai = getAI(customKey);
   const prompt = `I need 3 distinct hackathon ideas based on:
     1. Interests: ${interests}
     2. Loved Tech: ${tech}
@@ -52,10 +54,8 @@ export const generateIdeaOptions = async (
   return response.text ? JSON.parse(response.text) : [];
 };
 
-/**
- * Refines a project idea into a practical execution plan.
- */
-export const refineProjectIdea = async (rawInput: string, devPrefs?: string): Promise<ProjectIdea> => {
+export const refineProjectIdea = async (rawInput: string, devPrefs?: string, customKey?: string | null): Promise<ProjectIdea> => {
+  const ai = getAI(customKey);
   const prompt = `Convert this rough idea into a practical MVP plan: "${rawInput}". 
        ${devPrefs ? `TECHNICAL PREFERENCES: ${devPrefs}` : ""}
        Strip away theoretical fluff. Define the core loop and only the features needed for a winning demo.`;
@@ -86,26 +86,14 @@ export const refineProjectIdea = async (rawInput: string, devPrefs?: string): Pr
   return idea;
 };
 
-/**
- * Generates a roadmap focused on practical, executable tasks.
- */
 export const generateRoadmap = async (
   duration: '24h' | '48h',
-  idea: ProjectIdea
+  idea: ProjectIdea,
+  customKey?: string | null
 ): Promise<RoadmapPhase[]> => {
+  const ai = getAI(customKey);
   const prompt = `Create a PRACTICAL technical roadmap for "${idea.title}".
     ${idea.developerPreferences ? `TECHNICAL STYLE PREFERENCES: ${idea.developerPreferences}` : ""}
-    
-    CRITICAL: For the first phase, include EXPLICIT and DETAILED website creation steps.
-    Example of a GOOD first phase:
-    1. "Initialize Next.js with Lucide Icons and Tailwind Config"
-    2. "Define global colors in globals.css following the brand palette"
-    3. "Scaffold the main Layout.tsx with a Sidebar and Header"
-    4. "Setup Database Schema in Prisma/Supabase"
-    
-    RULES:
-    1. Tasks must be ACTIONABLE code-focused steps.
-    2. Provide the EXACT command or library to use in the description.
     
     Phases:
     1. Skeleton & Tools (Hours 0-4)
@@ -160,50 +148,32 @@ export const generateRoadmap = async (
   return [];
 };
 
-/**
- * Generates practical code snippets for technical tasks using the Pro model for complex logic.
- */
-export const generateCodeForTask = async (taskTitle: string, taskDesc: string, idea: ProjectIdea): Promise<string> => {
-  const prompt = `Write a PRACTICAL implementation for: ${taskTitle}.
-    Context: ${idea.title}.
-    Details: ${taskDesc}.
-    ${idea.developerPreferences ? `MANDATORY CODING STYLE: ${idea.developerPreferences}` : ""}
-    
-    Output ONLY code. No explanations. Use standard, beginner-friendly libraries unless preferences say otherwise.`;
-
-  const response = await ai.models.generateContent({
-    model: MODEL_PRO,
-    contents: prompt,
-  });
-
+export const generateCodeForTask = async (taskTitle: string, taskDesc: string, idea: ProjectIdea, customKey?: string | null): Promise<string> => {
+  const ai = getAI(customKey);
+  const prompt = `Write a PRACTICAL implementation for: ${taskTitle}. Context: ${idea.title}. Details: ${taskDesc}. Output ONLY code.`;
+  const response = await ai.models.generateContent({ model: MODEL_PRO, contents: prompt });
   return response.text || "// Error generating code.";
 };
 
-/**
- * Creates a mentor chat session using the Pro model for advanced reasoning.
- */
-export const createMentorChat = (idea: ProjectIdea) => {
+export const createMentorChat = (idea: ProjectIdea, customKey?: string | null) => {
+  const ai = getAI(customKey);
   return ai.chats.create({
     model: MODEL_PRO,
     config: {
-      systemInstruction: `You are a practical hackathon mentor. 
-      The user is building "${idea.title}".
-      ${idea.developerPreferences ? `THE USER PREFERS THIS TECHNICAL STYLE: ${idea.developerPreferences}` : ""}
-      RULES:
-      1. Give technical code solutions, not theory.
-      2. Recommend standard libraries unless preferences specify otherwise.
-      3. If they ask a complex question, simplify it into a 15-minute hack.`
+      systemInstruction: `You are a practical hackathon mentor. User is building "${idea.title}".`
     }
   });
 };
 
-export const generateTeammatePost = async (skills: string, interests: string, ideaSummary?: string): Promise<string> => {
+export const generateTeammatePost = async (skills: string, interests: string, ideaSummary?: string, customKey?: string | null): Promise<string> => {
+  const ai = getAI(customKey);
   const prompt = `Write a short Discord post: I have skills in ${skills}, looking to join or build a project about ${interests}. ${ideaSummary ? `Current idea: ${ideaSummary}` : ""}`;
   const response = await ai.models.generateContent({ model: MODEL_FAST, contents: prompt });
   return response.text || "";
 };
 
-export const generateTeamRoles = async (isSolo: boolean, idea: ProjectIdea, teamSize?: number): Promise<TeamPlan> => {
+export const generateTeamRoles = async (isSolo: boolean, idea: ProjectIdea, teamSize?: number, customKey?: string | null): Promise<TeamPlan> => {
+  const ai = getAI(customKey);
   const prompt = `Roles for "${idea.title}" (${isSolo ? "Solo" : "Team of " + teamSize}). Describe 3-4 practical roles.`;
   const responseSchema: Schema = {
     type: Type.OBJECT,

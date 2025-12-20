@@ -52,6 +52,7 @@ export interface AppState {
   teamPlan: TeamPlan | null;
   roadmap: RoadmapPhase[];
   hackathonDuration: '24h' | '48h';
+  customApiKey: string | null;
 }
 
 export interface ChatMessage {
