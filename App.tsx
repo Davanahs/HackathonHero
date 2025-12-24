@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { AppState, AppStep, ProjectIdea, TeamPlan, RoadmapPhase } from './types';
 import { Landing } from './views/Landing';
@@ -7,19 +8,86 @@ import { Roadmap } from './views/Roadmap';
 import { Dashboard } from './views/Dashboard';
 import { Card, Input, Button, Icons } from './components/ui';
 
+const STORAGE_KEY = 'hackerhero_persisted_state';
+
 const INITIAL_STATE: AppState = {
   currentStep: AppStep.LANDING,
   projectIdea: null,
   teamPlan: null,
   roadmap: [],
   hackathonDuration: '24h',
-  customApiKey: localStorage.getItem('hackerhero_apikey')
+  chatHistory: []
+};
+
+const SettingsModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
+  const [key, setKey] = useState(localStorage.getItem('hackerhero_custom_key') || '');
+  
+  if (!isOpen) return null;
+
+  const handleSave = () => {
+    if (key.trim()) {
+      localStorage.setItem('hackerhero_custom_key', key.trim());
+      alert("Custom API Key saved! You now have unlimited requests. Your session will resume exactly where you left off.");
+    } else {
+      localStorage.removeItem('hackerhero_custom_key');
+      alert("Custom key cleared. Returning to shared usage limit.");
+    }
+    onClose();
+    window.location.reload(); 
+  };
+
+  return (
+    <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+      <div className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl p-10 relative">
+        <button onClick={onClose} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600">
+           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+        <h3 className="text-2xl font-black text-slate-800 mb-2 manual-font">Judge/Bypass Settings</h3>
+        <p className="text-sm text-slate-500 mb-8 font-medium">If the daily shared limit is exhausted, enter your own free Gemini API key here.</p>
+        
+        <div className="space-y-6">
+          <div>
+            <label className="text-[10px] font-black text-[#A696E7] uppercase tracking-widest block mb-2">Your Gemini API Key</label>
+            <Input 
+              type="password" 
+              value={key} 
+              onChange={(e: any) => setKey(e.target.value)} 
+              placeholder="Paste AI key here..." 
+            />
+          </div>
+          <div className="flex gap-3">
+            <Button onClick={handleSave} className="flex-1">Save Key</Button>
+            {localStorage.getItem('hackerhero_custom_key') && (
+              <Button variant="outline" onClick={() => { setKey(''); localStorage.removeItem('hackerhero_custom_key'); window.location.reload(); }}>Clear</Button>
+            )}
+          </div>
+          <p className="text-[10px] text-center text-slate-400 font-bold uppercase tracking-wider">Your key is stored locally in your browser.</p>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 const App: React.FC = () => {
-  const [state, setState] = useState<AppState>(INITIAL_STATE);
-  const [showKeyModal, setShowKeyModal] = useState(false);
-  const [tempKey, setTempKey] = useState(state.customApiKey || '');
+  // Initialize state from localStorage if it exists
+  const [state, setState] = useState<AppState>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return INITIAL_STATE;
+      }
+    }
+    return INITIAL_STATE;
+  });
+
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  // Sync state to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }, [state]);
 
   const updateState = (updates: Partial<AppState>) => {
     setState(prev => ({ ...prev, ...updates }));
@@ -29,13 +97,11 @@ const App: React.FC = () => {
     updateState({ currentStep: step });
   };
 
-  const handleSaveKey = () => {
-    const cleanKey = tempKey.trim();
-    localStorage.setItem('hackerhero_apikey', cleanKey);
-    updateState({ customApiKey: cleanKey });
-    setShowKeyModal(false);
-    // Visual feedback
-    console.log(`[App] API Key updated in storage.`);
+  const resetSession = () => {
+    if (window.confirm("Are you sure? This will clear your current project and roadmap progress.")) {
+      localStorage.removeItem(STORAGE_KEY);
+      setState(INITIAL_STATE);
+    }
   };
 
   const prevStep = () => {
@@ -63,7 +129,6 @@ const App: React.FC = () => {
         return (
           <TeamPlanning 
             idea={state.projectIdea!} 
-            customKey={state.customApiKey}
             onNext={(plan) => updateState({ teamPlan: plan, currentStep: AppStep.ROADMAP })} 
             onBack={prevStep} 
           />
@@ -73,13 +138,12 @@ const App: React.FC = () => {
           <Roadmap 
             idea={state.projectIdea!} 
             teamPlan={state.teamPlan!}
-            customKey={state.customApiKey}
             onNext={(roadmap, duration) => updateState({ roadmap, hackathonDuration: duration, currentStep: AppStep.DASHBOARD })} 
             onBack={prevStep} 
           />
         );
       case AppStep.DASHBOARD:
-        return <Dashboard state={state} onReset={() => setState({ ...INITIAL_STATE, customApiKey: state.customApiKey })} />;
+        return <Dashboard state={state} onUpdateState={updateState} onReset={resetSession} />;
       default:
         return <div>Error: Invalid step</div>;
     }
@@ -87,6 +151,18 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#DCD6F7] text-slate-800 flex flex-col relative overflow-x-hidden">
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      
+      {/* Floating Gear Icon */}
+      <button 
+        onClick={() => setIsSettingsOpen(true)}
+        className="fixed top-6 right-6 z-[100] p-3 bg-white/60 hover:bg-white backdrop-blur-md rounded-2xl shadow-xl text-slate-400 hover:text-[#A696E7] transition-all group"
+      >
+        <div className="group-hover:rotate-90 transition-transform duration-500">
+          <Icons.Settings />
+        </div>
+      </button>
+
       {/* Dynamic Background Accents */}
       <div className="fixed inset-0 z-0 pointer-events-none">
          <div className="absolute top-[-15%] right-[-10%] w-[50%] h-[50%] bg-white/40 blur-[120px] rounded-full"></div>
@@ -94,39 +170,6 @@ const App: React.FC = () => {
       </div>
 
       <div className="relative z-10 flex-1 p-4 md:p-12">
-        {/* Global Key Button */}
-        <div className="fixed top-6 right-6 z-[100]">
-          <button 
-            onClick={() => setShowKeyModal(true)}
-            className="p-3 bg-white/80 backdrop-blur-md rounded-2xl shadow-lg border border-white hover:ring-2 hover:ring-[#A696E7] transition-all group"
-          >
-            <div className={`${state.customApiKey ? 'text-emerald-500' : 'text-slate-400'} group-hover:scale-110 transition-transform`}>
-              <Icons.Settings />
-            </div>
-          </button>
-        </div>
-
-        {showKeyModal && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-            <Card className="max-w-md w-full animate-fade-in" title="API Configuration">
-              <p className="text-sm text-slate-500 mb-6 font-medium">By default, this app uses the developer's key. If the quota is empty, you can add your own free Gemini API key here.</p>
-              <div className="space-y-4">
-                <Input 
-                  type="password"
-                  placeholder="Paste your Gemini API Key..." 
-                  value={tempKey} 
-                  onChange={(e: any) => setTempKey(e.target.value)} 
-                />
-                <div className="flex gap-3">
-                  <Button onClick={handleSaveKey} className="flex-1">Save Key</Button>
-                  <Button variant="secondary" onClick={() => setShowKeyModal(false)}>Close</Button>
-                </div>
-                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="block text-center text-[10px] font-black text-[#A696E7] uppercase tracking-widest hover:underline">Get a free key &rarr;</a>
-              </div>
-            </Card>
-          </div>
-        )}
-
         {state.currentStep !== AppStep.DASHBOARD && state.currentStep !== AppStep.LANDING && (
           <div className="max-w-xl mx-auto mb-12">
             <div className="flex items-center justify-between text-[10px] font-black text-[#8B7EDC] uppercase tracking-[0.2em] mb-3 manual-font">

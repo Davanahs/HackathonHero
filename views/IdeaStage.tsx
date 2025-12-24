@@ -20,15 +20,12 @@ export const IdeaStage: React.FC<IdeaStageProps> = ({ onNext, onBack }) => {
   const [showExpert, setShowExpert] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const customKey = localStorage.getItem('hackerhero_apikey');
-
   const handleError = (e: any, context: string) => {
     console.error(`Gemini API Error (${context}):`, e);
     const msg = e.message || "";
-    if (msg.includes("API_KEY_MISSING")) {
-      alert("API Key is missing. Please set it in the Settings (top right gear icon).");
-    } else if (msg.includes("API key not valid")) {
-      alert("The API Key provided is invalid. Please double-check it in Netlify or your settings.");
+    
+    if (msg.includes("LIMIT_EXCEEDED")) {
+      alert("⚠️ Shared Limit Reached!\n\nThe primary API quota for today has been used up by visitors. \n\nPLEASE NOTE: If you are a judge or teacher, you can add your own free Gemini key by clicking the Gear icon in the top-right corner to continue testing!");
     } else {
       alert(`Error during ${context}: ${msg || "Unknown error"}. Check the browser console (F12) for details.`);
     }
@@ -37,7 +34,7 @@ export const IdeaStage: React.FC<IdeaStageProps> = ({ onNext, onBack }) => {
   const handleGen = async () => {
     setLoading(true);
     try {
-      const ideas = await generateIdeaOptions(interests, tech, frustration, customKey);
+      const ideas = await generateIdeaOptions(interests, tech, frustration);
       setOptions(ideas.map(i => ({ ...i, developerPreferences: devPrefs })));
       setStep('CHOOSE_IDEA');
     } catch (e: any) {
@@ -48,7 +45,7 @@ export const IdeaStage: React.FC<IdeaStageProps> = ({ onNext, onBack }) => {
   const handleRefine = async () => {
     setLoading(true);
     try {
-      const idea = await refineProjectIdea(rawInput, devPrefs, customKey);
+      const idea = await refineProjectIdea(rawInput, devPrefs);
       onNext(idea);
     } catch (e: any) {
       handleError(e, "refining idea");

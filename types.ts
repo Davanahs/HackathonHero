@@ -49,17 +49,17 @@ export interface RoadmapPhase {
   tasks: RoadmapTask[];
 }
 
+export interface ChatMessage {
+  role: 'user' | 'model';
+  text: string;
+  timestamp: number;
+}
+
 export interface AppState {
   currentStep: AppStep;
   projectIdea: ProjectIdea | null;
   teamPlan: TeamPlan | null;
   roadmap: RoadmapPhase[];
   hackathonDuration: '24h' | '48h';
-  customApiKey: string | null;
-}
-
-export interface ChatMessage {
-  role: 'user' | 'model';
-  text: string;
-  timestamp: number;
+  chatHistory: ChatMessage[];
 }

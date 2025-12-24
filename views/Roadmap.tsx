@@ -6,18 +6,17 @@ import { generateRoadmap } from '../services/geminiService';
 interface RoadmapProps {
   idea: ProjectIdea;
   teamPlan: TeamPlan;
-  customKey?: string | null;
   onNext: (roadmap: RoadmapPhase[], duration: '24h' | '48h') => void;
   onBack: () => void;
 }
 
-export const Roadmap: React.FC<RoadmapProps> = ({ idea, teamPlan, customKey, onNext, onBack }) => {
+export const Roadmap: React.FC<RoadmapProps> = ({ idea, teamPlan, onNext, onBack }) => {
   const [loading, setLoading] = useState(false);
 
   const handleSelect = async (duration: '24h' | '48h') => {
     setLoading(true);
     try {
-      const phases = await generateRoadmap(duration, idea, teamPlan, customKey);
+      const phases = await generateRoadmap(duration, idea, teamPlan);
       onNext(phases, duration);
     } catch (e) {
       alert("Consultation failed. Re-initiating roadmap generation.");
