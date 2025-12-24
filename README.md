@@ -1,7 +1,13 @@
+<div align="center">
+<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+</div>
 
 # HackathonHero 🚀
 
 **HackathonHero** is your professional AI co-pilot for high-stakes hackathons. It eliminates common project hurdles by providing an Idea Studio, Team Planner, and a 24/48-Hour Execution Roadmap with integrated AI mentorship.
+
+![HackathonHero UI](hackathonhero-screenshot.png)
+*(Interactive roadmap generator with real-time AI mentorship)*
 
 ## 🌟 Key Features
 - **Idea Studio:** Brainstorm concepts or refine rough drafts into technical MVP plans.
@@ -21,17 +27,31 @@
 
 ### Local Development
 1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/Davanahs/Hacksathan_Hreo.git
-   ```
+
+git clone https://github.com/Davanahs/HackathonHero.git
+cd HackathonHero
 2. **Configure Secrets:**
-   - Create a `.env` file in the root directory.
-   - Add your API key: `API_KEY=your_actual_key_here`
+- Create a `.env` file in the root directory.
+- Add your API key: `API_KEY=your_actual_key_here`
 3. **Run the app:**
-   Simply open `index.html` in a modern browser using a Live Server extension or use a local dev server.
+Simply open `index.html` in a modern browser using a Live Server extension or use a local dev server.
 
 ### Deployment Note
 When deploying to platforms like Vercel, Netlify, or GH Pages, ensure you set the `API_KEY` as an environment variable in your project settings.
 
 ## 🛡️ Security & Privacy
 This project uses `process.env.API_KEY` to ensure secrets are never committed to version control. It also supports **BYOK (Bring Your Own Key)** in the UI, allowing users to use their own usage quotas if the primary key is exhausted.
+
+---
+
+### 👥 Authors & Credits
+
+Built for the Google AI Studio × Scaler Startup Competition 2025.
+
+**Team:**
+- **Davana Hiremath H S (@Davanahs)** – Lead Developer, Product Vision, Core Development, UX Design, AI Integration & Hackathon Strategy
+- Chinmaygouda Patil (@Chinmaygouda) – Backend Support & Deployment Assistance
+
+---
+
+**Built with ❤️ for hackathon warriors everywhere!** 🚀
