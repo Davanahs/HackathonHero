@@ -302,13 +302,107 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onUpdateState, onRe
         )}
 
         {activeTab === DashboardTab.GUIDE && (
-          <div className="h-full overflow-y-auto p-12 bg-[#F4F1FE]/30">
-            <div className="max-w-4xl mx-auto">
+          <div className="h-full overflow-y-auto p-12 bg-white/40 backdrop-blur-xl">
+            <div className="max-w-5xl mx-auto pb-32">
               <div className="text-center mb-16">
-                <div className="bg-[#A696E7] text-white px-6 py-2 rounded-full inline-block font-black text-[10px] uppercase tracking-widest mb-4">Level Up</div>
-                <h2 className="text-4xl font-black text-slate-800 mb-4 tracking-tight">The Beginner's Genesis Guide</h2>
+                <div className="bg-[#A696E7] text-white px-8 py-2.5 rounded-full inline-block font-black text-[10px] uppercase tracking-[0.3em] mb-6 shadow-xl shadow-indigo-100">Level Up</div>
+                <h2 className="text-5xl font-black text-slate-800 mb-4 tracking-tight manual-font">The Beginner's Genesis Guide</h2>
+                <p className="text-slate-500 font-medium text-lg max-w-2xl mx-auto">A universal blueprint for building high-quality prototypes with speed.</p>
               </div>
-              <Button className="mx-auto" onClick={() => setActiveTab(DashboardTab.TRACKER)}>Jump to my Tasks</Button>
+
+              {/* Survival Mindset Row */}
+              <div className="mb-20">
+                <h4 className="text-[10px] font-black text-[#A696E7] uppercase tracking-[0.4em] text-center mb-10">Survival Mindset</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-white p-8 rounded-3xl shadow-lg border border-slate-100 flex flex-col items-start hover:-translate-y-1 transition-transform">
+                    <div className="text-orange-400 mb-6"><Icons.Sparkles /></div>
+                    <h5 className="font-black text-slate-800 mb-3 text-lg">The 80/20 Rule</h5>
+                    <p className="text-xs text-slate-500 font-medium leading-relaxed">80% of your score comes from 20% of your features. Make the 'Core Loop' perfect, ignore the rest.</p>
+                  </div>
+                  <div className="bg-white p-8 rounded-3xl shadow-lg border border-slate-100 flex flex-col items-start hover:-translate-y-1 transition-transform">
+                    <div className="text-[#A696E7] mb-6"><Icons.Settings /></div>
+                    <h5 className="font-black text-slate-800 mb-3 text-lg">Fake it 'til you make it</h5>
+                    <p className="text-xs text-slate-500 font-medium leading-relaxed">If a feature is too hard to code in 2 hours, use a static image or hardcoded data for the demo.</p>
+                  </div>
+                  <div className="bg-white p-8 rounded-3xl shadow-lg border border-slate-100 flex flex-col items-start hover:-translate-y-1 transition-transform">
+                    <div className="text-indigo-400 mb-6"><Icons.Rocket /></div>
+                    <h5 className="font-black text-slate-800 mb-3 text-lg">Flow over Perfection</h5>
+                    <p className="text-xs text-slate-500 font-medium leading-relaxed">A buggy app that is finished is better than a perfect app that isn't deployed.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step-by-Step Guide Roadmap */}
+              <div className="relative pl-12 md:pl-20 border-l-4 border-slate-100 ml-4 md:ml-10 space-y-16">
+                {[
+                  {
+                    num: 1,
+                    title: "Ideation & Validating the Pain",
+                    desc: "Spend no more than 1 hour deciding. Solve a problem that either you have, or someone in the room has. Validate it by asking 3 people 'Would you use this?'",
+                    hack: "Don't build for 1 million users. Build for 1 user.",
+                    tip: "If you can't explain it in 15 seconds, it's too complex."
+                  },
+                  {
+                    num: 2,
+                    title: "Tech Stack & Boilerplate",
+                    desc: "Use what you know. A hackathon is the worst time to learn a new language. Get your 'Hello World' deployed to a live URL in the first 2 hours.",
+                    hack: "Use Vite + Tailwind for instant UI speed.",
+                    tip: "Github Copilot is your co-founder. Use it for everything."
+                  },
+                  {
+                    num: 3,
+                    title: "Designing the 'Hero' View",
+                    desc: "Design only the screens that will be in your demo. Focus on the 'Happy Path' – the exact steps you will show the judges.",
+                    hack: "Use high-quality placeholder icons and fonts.",
+                    tip: "Keep it simple. White space is your friend."
+                  },
+                  {
+                    num: 4,
+                    title: "MVP Implementation",
+                    desc: "Build the minimum. If it's a food app, just show the menu and the 'Order' button. Don't build the 'Profile Settings' page.",
+                    hack: "Log your state to the console often: 'console.log(myData)' is your best friend.",
+                    tip: "Don't use Redux or complex state managers for a 24h hack."
+                  },
+                  {
+                    num: 5,
+                    title: "Gemini API Integration",
+                    desc: "Hook up the 'Brain'. Send your prompt to Gemini and display the response text in a pretty card.",
+                    hack: "Use a loading spinner! Users hate waiting for AI without seeing progress.",
+                    tip: "Keep prompts short and specific for faster responses."
+                  }
+                ].map((step, idx) => (
+                  <div key={idx} className="relative group">
+                    <div className="absolute -left-[54px] md:-left-[74px] top-0 w-12 h-12 md:w-16 md:h-16 rounded-2xl bg-white border-2 border-slate-100 flex items-center justify-center font-black text-slate-400 group-hover:border-[#A696E7] group-hover:text-[#A696E7] transition-all shadow-sm">
+                      {step.num}
+                    </div>
+                    <div className="bg-white p-10 rounded-[2.5rem] shadow-xl border border-slate-50">
+                      <h4 className="text-2xl font-black text-slate-800 mb-4 manual-font">{step.num}. {step.title}</h4>
+                      <p className="text-slate-500 font-medium mb-8 leading-relaxed">{step.desc}</p>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-emerald-50/50 border border-emerald-100 p-4 rounded-2xl flex items-start gap-3">
+                          <span className="text-emerald-500 shrink-0 mt-0.5">🔥</span>
+                          <div>
+                            <div className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-1">Hackathon Hack</div>
+                            <div className="text-xs text-slate-600 font-bold">{step.hack}</div>
+                          </div>
+                        </div>
+                        <div className="bg-indigo-50/50 border border-indigo-100 p-4 rounded-2xl flex items-start gap-3">
+                          <span className="text-indigo-500 shrink-0 mt-0.5">⚡</span>
+                          <div>
+                            <div className="text-[9px] font-black text-indigo-600 uppercase tracking-widest mb-1">Pro Tip</div>
+                            <div className="text-xs text-slate-600 font-bold">{step.tip}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-20 flex justify-center">
+                <Button className="px-12 py-5 text-xl shadow-2xl" onClick={() => setActiveTab(DashboardTab.TRACKER)}>Jump to my Tasks</Button>
+              </div>
             </div>
           </div>
         )}

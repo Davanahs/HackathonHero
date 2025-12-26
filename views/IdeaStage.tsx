@@ -25,7 +25,9 @@ export const IdeaStage: React.FC<IdeaStageProps> = ({ onNext, onBack }) => {
     const msg = e.message || "";
     
     if (msg.includes("LIMIT_EXCEEDED")) {
-      alert("⚠️ Shared Limit Reached!\n\nThe primary API quota for today has been used up by visitors. \n\nPLEASE NOTE: If you are a judge or teacher, you can add your own free Gemini key by clicking the Gear icon in the top-right corner to continue testing!");
+      alert("⚠️ Shared Limit Reached!\n\nThe primary shared quota for today has been used up. \n\nPLEASE NOTE: You can add your own free Gemini key by clicking the Gear icon in the top-right corner to continue testing immediately!");
+    } else if (msg.includes("API_KEY_MISSING")) {
+      alert("⚠️ No API Key Found!\n\nPlease add a free Gemini API key using the Gear icon in the top-right corner to start using HackerHero.");
     } else {
       alert(`Error during ${context}: ${msg || "Unknown error"}. Check the browser console (F12) for details.`);
     }

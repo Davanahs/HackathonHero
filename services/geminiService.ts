@@ -22,7 +22,7 @@ const checkAndIncrementUsage = (isCustomKey: boolean) => {
   }
 
   if (usage.count >= DAILY_LIMIT) {
-    throw new Error("LIMIT_EXCEEDED: The daily shared request limit (20) has been reached. Please try again tomorrow or add your own API key via the Gear icon in the top-right.");
+    throw new Error("LIMIT_EXCEEDED");
   }
 
   usage.count++;
@@ -31,20 +31,30 @@ const checkAndIncrementUsage = (isCustomKey: boolean) => {
 
 /**
  * Gets the most appropriate API Key.
- * 1. Checks localStorage for a user-provided key.
- * 2. Falls back to process.env.API_KEY.
+ * Returns null if no key is available.
  */
-const getActiveKey = () => {
+export const getActiveKey = () => {
   const customKey = localStorage.getItem('hackerhero_custom_key');
   const isCustom = !!(customKey && customKey.trim() !== '');
   const apiKey = isCustom ? customKey!.trim() : process.env.API_KEY;
   
   if (!apiKey || apiKey.trim() === '') {
-    throw new Error("API_KEY_MISSING: No API key found. Please add one in Settings (Gear icon).");
+    return null;
   }
 
-  checkAndIncrementUsage(isCustom);
+  // Only check usage limits if we are NOT using a custom key
+  if (!isCustom) {
+    checkAndIncrementUsage(isCustom);
+  }
+  
   return apiKey;
+};
+
+// Internal helper for initialization
+const getAIClient = () => {
+  const apiKey = getActiveKey();
+  if (!apiKey) throw new Error("API_KEY_MISSING");
+  return new GoogleGenAI({ apiKey });
 };
 
 export const generateIdeaOptions = async (
@@ -52,8 +62,7 @@ export const generateIdeaOptions = async (
   tech: string,
   frustration: string
 ): Promise<ProjectIdea[]> => {
-  const apiKey = getActiveKey();
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = getAIClient();
   const prompt = `I need 3 distinct hackathon ideas based on:
     1. Interests: ${interests}
     2. Loved Tech: ${tech}
@@ -68,7 +77,7 @@ export const generateIdeaOptions = async (
     items: {
       type: Type.OBJECT,
       properties: {
-        recipeName: { type: Type.STRING }, // Note: Using generic names if needed, but following prompt schema
+        recipeName: { type: Type.STRING },
         title: { type: Type.STRING },
         problem: { type: Type.STRING },
         targetAudience: { type: Type.STRING },
@@ -93,8 +102,7 @@ export const generateIdeaOptions = async (
 };
 
 export const refineProjectIdea = async (rawInput: string, devPrefs?: string): Promise<ProjectIdea> => {
-  const apiKey = getActiveKey();
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = getAIClient();
   const prompt = `Convert this rough idea into a practical MVP plan: "${rawInput}". 
        ${devPrefs ? `TECHNICAL PREFERENCES: ${devPrefs}` : ""}
        Strip away theoretical fluff. Define the core loop and only the features needed for a winning demo.`;
@@ -131,8 +139,7 @@ export const generateRoadmap = async (
   idea: ProjectIdea,
   teamPlan: TeamPlan
 ): Promise<RoadmapPhase[]> => {
-  const apiKey = getActiveKey();
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = getAIClient();
   const roleNames = teamPlan.roles.map(r => r.roleName).join(", ");
   
   const prompt = `Create a PRACTICAL technical roadmap for "${idea.title}".
@@ -198,8 +205,7 @@ export const generateRoadmap = async (
 };
 
 export const generateCodeForTask = async (taskTitle: string, taskDesc: string, idea: ProjectIdea): Promise<string> => {
-  const apiKey = getActiveKey();
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = getAIClient();
   const prompt = `Write high-quality, executable source code for the task: "${taskTitle}". 
   Task Details: ${taskDesc}. 
   Project Context: Building "${idea.title}". 
@@ -219,8 +225,7 @@ export const generateCodeForTask = async (taskTitle: string, taskDesc: string, i
 };
 
 export const createMentorChat = (idea: ProjectIdea) => {
-  const apiKey = getActiveKey();
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = getAIClient();
   return ai.chats.create({
     model: MODEL_NAME,
     config: {
@@ -245,8 +250,7 @@ export const createMentorChat = (idea: ProjectIdea) => {
 };
 
 export const generateTeammatePost = async (skills: string, interests: string, ideaSummary?: string): Promise<string> => {
-  const apiKey = getActiveKey();
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = getAIClient();
   const prompt = `Write a short Discord post: I have skills in ${skills}, looking to join or build a project about ${interests}. ${ideaSummary ? `Current idea: ${ideaSummary}` : ""}`;
   const response = await ai.models.generateContent({ 
     model: MODEL_NAME, 
@@ -257,8 +261,7 @@ export const generateTeammatePost = async (skills: string, interests: string, id
 };
 
 export const generateTeamRoles = async (isSolo: boolean, idea: ProjectIdea, teamSize?: number): Promise<TeamPlan> => {
-  const apiKey = getActiveKey();
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = getAIClient();
   const prompt = `Roles for "${idea.title}" (${isSolo ? "Solo" : "Team of " + teamSize}). Describe 3-4 practical roles.`;
   const responseSchema = {
     type: Type.OBJECT,

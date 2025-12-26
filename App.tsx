@@ -7,6 +7,7 @@ import { TeamPlanning } from './views/TeamPlanning';
 import { Roadmap } from './views/Roadmap';
 import { Dashboard } from './views/Dashboard';
 import { Card, Input, Button, Icons } from './components/ui';
+import { getActiveKey } from './services/geminiService';
 
 const STORAGE_KEY = 'hackerhero_persisted_state';
 
@@ -19,7 +20,7 @@ const INITIAL_STATE: AppState = {
   chatHistory: []
 };
 
-const SettingsModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
+const SettingsModal = ({ isOpen, onClose, isForceOpen }: { isOpen: boolean, onClose: () => void, isForceOpen: boolean }) => {
   const [key, setKey] = useState(localStorage.getItem('hackerhero_custom_key') || '');
   
   if (!isOpen) return null;
@@ -27,10 +28,10 @@ const SettingsModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => vo
   const handleSave = () => {
     if (key.trim()) {
       localStorage.setItem('hackerhero_custom_key', key.trim());
-      alert("Custom API Key saved! You now have unlimited requests. Your session will resume exactly where you left off.");
+      alert("API Key saved! This is the Free Tier, so you won't be billed.");
     } else {
       localStorage.removeItem('hackerhero_custom_key');
-      alert("Custom key cleared. Returning to shared usage limit.");
+      alert("Custom key cleared.");
     }
     onClose();
     window.location.reload(); 
@@ -38,30 +39,61 @@ const SettingsModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => vo
 
   return (
     <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-      <div className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl p-10 relative">
-        <button onClick={onClose} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600">
-           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-        </button>
-        <h3 className="text-2xl font-black text-slate-800 mb-2 manual-font">Judge/Bypass Settings</h3>
-        <p className="text-sm text-slate-500 mb-8 font-medium">If the daily shared limit is exhausted, enter your own free Gemini API key here.</p>
+      <div className="w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl p-10 relative overflow-y-auto max-h-[90vh]">
+        {!isForceOpen && (
+          <button onClick={onClose} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600">
+             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
+        )}
+        <h3 className="text-3xl font-black text-slate-800 mb-2 manual-font">
+          {isForceOpen ? "Welcome to HackerHero" : "Limit / Settings"}
+        </h3>
+        <div className="text-sm text-slate-500 mb-8 font-medium leading-relaxed">
+          {isForceOpen 
+            ? "To start building, please copy-paste your FREE Gemini API key. No credit card or billing is required." 
+            : "If the shared daily limit is reached, you can use your own free key here to continue."}
+        </div>
         
-        <div className="space-y-6">
+        <div className="space-y-8">
+          <div className="bg-[#F4F1FE] rounded-2xl p-6 border border-[#A696E7]/20">
+            <h4 className="text-xs font-black text-[#8B7EDC] uppercase tracking-[0.2em] mb-4">Fast Setup (10 Seconds):</h4>
+            <div className="space-y-4">
+              <div className="flex gap-4 items-start">
+                <div className="w-6 h-6 rounded-full bg-[#A696E7] text-white flex items-center justify-center text-[10px] font-black shrink-0">1</div>
+                <div className="text-xs text-slate-600 font-bold leading-relaxed">
+                  Open <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-[#A696E7] underline font-black">Google AI Studio</a>.
+                </div>
+              </div>
+              <div className="flex gap-4 items-start">
+                <div className="w-6 h-6 rounded-full bg-[#A696E7] text-white flex items-center justify-center text-[10px] font-black shrink-0">2</div>
+                <p className="text-xs text-slate-600 font-bold leading-relaxed">
+                  You likely already have a <span className="text-[#A696E7] font-black underline">"Default Gemini API Key"</span> listed there. 
+                </p>
+              </div>
+              <div className="flex gap-4 items-start">
+                <div className="w-6 h-6 rounded-full bg-[#A696E7] text-white flex items-center justify-center text-[10px] font-black shrink-0">3</div>
+                <p className="text-xs text-slate-600 font-bold leading-relaxed">
+                  Click the <span className="bg-[#A696E7] text-white px-2 py-0.5 rounded">Copy Icon</span> next to it and paste it below. 
+                  <span className="block mt-1 text-[10px] opacity-70">Note: It says "Free tier" - no billing!</span>
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div>
-            <label className="text-[10px] font-black text-[#A696E7] uppercase tracking-widest block mb-2">Your Gemini API Key</label>
+            <label className="text-[10px] font-black text-[#A696E7] uppercase tracking-widest block mb-2">Paste Your API Key Here</label>
             <Input 
               type="password" 
               value={key} 
               onChange={(e: any) => setKey(e.target.value)} 
-              placeholder="Paste AI key here..." 
+              placeholder="AIza..." 
             />
           </div>
+          
           <div className="flex gap-3">
-            <Button onClick={handleSave} className="flex-1">Save Key</Button>
-            {localStorage.getItem('hackerhero_custom_key') && (
-              <Button variant="outline" onClick={() => { setKey(''); localStorage.removeItem('hackerhero_custom_key'); window.location.reload(); }}>Clear</Button>
-            )}
+            <Button onClick={handleSave} className="flex-1 py-4 text-lg">Save & Get Started</Button>
           </div>
-          <p className="text-[10px] text-center text-slate-400 font-bold uppercase tracking-wider">Your key is stored locally in your browser.</p>
+          <p className="text-[10px] text-center text-slate-400 font-bold uppercase tracking-wider italic">Zero cost. Zero billing. Just building.</p>
         </div>
       </div>
     </div>
@@ -69,7 +101,6 @@ const SettingsModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => vo
 };
 
 const App: React.FC = () => {
-  // Initialize state from localStorage if it exists
   const [state, setState] = useState<AppState>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -83,8 +114,16 @@ const App: React.FC = () => {
   });
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [noKeyDetected, setNoKeyDetected] = useState(false);
 
-  // Sync state to localStorage whenever it changes
+  useEffect(() => {
+    const key = getActiveKey();
+    if (!key) {
+      setNoKeyDetected(true);
+      setIsSettingsOpen(true);
+    }
+  }, []);
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state]);
@@ -151,19 +190,24 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#DCD6F7] text-slate-800 flex flex-col relative overflow-x-hidden">
-      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} isForceOpen={noKeyDetected} />
       
-      {/* Floating Gear Icon */}
-      <button 
-        onClick={() => setIsSettingsOpen(true)}
-        className="fixed top-6 right-6 z-[100] p-3 bg-white/60 hover:bg-white backdrop-blur-md rounded-2xl shadow-xl text-slate-400 hover:text-[#A696E7] transition-all group"
-      >
-        <div className="group-hover:rotate-90 transition-transform duration-500">
-          <Icons.Settings />
-        </div>
-      </button>
+      <div className="fixed top-6 right-6 z-[100] flex items-center gap-3">
+        {noKeyDetected && (
+          <div className="bg-red-500 text-white text-[9px] font-black uppercase px-3 py-1.5 rounded-full animate-pulse shadow-lg">
+            API Key Required
+          </div>
+        )}
+        <button 
+          onClick={() => setIsSettingsOpen(true)}
+          className="p-3 bg-white/60 hover:bg-white backdrop-blur-md rounded-2xl shadow-xl text-slate-400 hover:text-[#A696E7] transition-all group"
+        >
+          <div className="group-hover:rotate-90 transition-transform duration-500">
+            <Icons.Settings />
+          </div>
+        </button>
+      </div>
 
-      {/* Dynamic Background Accents */}
       <div className="fixed inset-0 z-0 pointer-events-none">
          <div className="absolute top-[-15%] right-[-10%] w-[50%] h-[50%] bg-white/40 blur-[120px] rounded-full"></div>
          <div className="absolute bottom-[-15%] left-[-10%] w-[50%] h-[50%] bg-[#A696E7]/30 blur-[120px] rounded-full"></div>
