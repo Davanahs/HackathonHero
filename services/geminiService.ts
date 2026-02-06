@@ -4,6 +4,29 @@ import { ProjectIdea, RoadmapPhase, TeamPlan } from "../types";
 const DAILY_LIMIT = 20;
 const MODEL_NAME = 'gemini-3-flash-preview';
 
+const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
+
+const generateWithRetry = async (
+  ai: GoogleGenAI,
+  request: any,
+  retries = 3
+) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await ai.models.generateContent(request);
+    } catch (err: any) {
+      const msg = err?.message || "";
+      if (msg.includes("503") && i < retries - 1) {
+        console.warn(`Gemini overloaded. Retrying (${i + 1})...`);
+        await sleep(1500 * (i + 1)); // exponential backoff
+      } else {
+        throw err;
+      }
+    }
+  }
+};
+
+
 /**
  * Tracks and limits usage per user to protect the shared API key.
  * Only applies when using the shared process.env.API_KEY.
@@ -33,29 +56,35 @@ const checkAndIncrementUsage = (isCustomKey: boolean) => {
  * Gets the most appropriate API Key.
  * Returns null if no key is available.
  */
-export const getActiveKey = () => {
-  const customKey = localStorage.getItem('hackerhero_custom_key');
-  const isCustom = !!(customKey && customKey.trim() !== '');
-  const apiKey = isCustom ? customKey!.trim() : process.env.API_KEY;
-  
-  if (!apiKey || apiKey.trim() === '') {
-    return null;
-  }
-
-  // Only check usage limits if we are NOT using a custom key
-  if (!isCustom) {
-    checkAndIncrementUsage(isCustom);
-  }
-  
-  return apiKey;
-};
-
-// Internal helper for initialization
 const getAIClient = () => {
   const apiKey = getActiveKey();
   if (!apiKey) throw new Error("API_KEY_MISSING");
   return new GoogleGenAI({ apiKey });
 };
+
+
+// Internal helper for initialization
+export const getActiveKey = () => {
+  const customKey = localStorage.getItem('hackerhero_custom_key');
+  const isCustom = !!(customKey && customKey.trim() !== '');
+
+  // ✅ Vite-safe environment variable
+  const envKey = import.meta.env.VITE_GEMINI_API_KEY;
+
+  const apiKey = isCustom ? customKey!.trim() : envKey;
+
+  if (!apiKey || apiKey.trim() === '') {
+    return null;
+  }
+
+  // Only rate-limit shared (env) key
+  if (!isCustom) {
+    checkAndIncrementUsage(false);
+  }
+
+  return apiKey;
+};
+
 
 export const generateIdeaOptions = async (
   interests: string,
